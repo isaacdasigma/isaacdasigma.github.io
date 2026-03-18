@@ -1,36 +1,173 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IsaacDaSigma</title>
+
+  <!-- Fortnite-style font -->
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+
   <style>
+    /* Reset */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      background: #0f0f0f;
+      font-family: 'Luckiest Guy', cursive;
+      background: linear-gradient(135deg, #000000, #ff0000, #ffffff);
       color: white;
+      min-height: 100vh;
+    }
+
+    /* Navigation Bar */
+    nav {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: center;
+      padding: 15px 0;
+      z-index: 1000;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 20px;
+      font-size: 1.2rem;
+      transition: color 0.3s;
+    }
+
+    nav a:hover {
+      color: #ff0000;
+    }
+
+    header {
       text-align: center;
-      font-family: Arial;
+      margin: 60px 20px 40px 20px;
     }
-    h1 {
-      font-size: 50px;
-      margin-top: 20px;
+
+    header h1 {
+      font-size: 3rem;
+      color: #ff0000;
+      text-shadow: 2px 2px 10px black;
+      margin-bottom: 10px;
     }
-    .video {
-      margin-top: 30px;
+
+    header p {
+      font-size: 1.2rem;
+      text-shadow: 1px 1px 5px black;
+    }
+
+    .section {
+      margin: 50px 20px;
+      text-align: center;
+    }
+
+    .section h2 {
+      font-size: 2rem;
+      color: #ffffff;
+      text-shadow: 1px 1px 5px black;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: rgba(0,0,0,0.7);
+      padding: 20px;
+      border-radius: 12px;
+      margin: 10px auto;
+      max-width: 500px;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px #ff0000;
+    }
+
+    a.button {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 10px 25px;
+      background: #ff0000;
+      color: #fff;
+      font-weight: bold;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+
+    a.button:hover {
+      background: #cc0000;
+    }
+
+    footer {
+      margin: 50px 0;
+      font-size: 0.9rem;
+      color: #ccc;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
-<h1>IsaacDaSigma 🎮</h1>
+  <!-- Navigation -->
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="stream.html">Streams</a>
+    <a href="videos.html">Videos</a>
+    <a href="about.html">About</a>
+    <a href="games.html">Games</a>
+  </nav>
 
-<div class="video">
-  <iframe width="800" height="450"
-    src="https://www.youtube.com/embed/45KaMtqQMT8"
-    frameborder="0"
-    allowfullscreen>
-  </iframe>
-</div>
+  <!-- Header -->
+  <header id="home">
+    <h1>IsaacDaSigma</h1>
+    <p>🎮 Fortnite | Anime Games | Memes</p>
+  </header>
 
-<p>🔥 Gaming clips & tips coming soon</p>
+  <!-- Streams Section -->
+  <div class="section" id="streams">
+    <h2>Live Streams</h2>
+    <div class="card">
+      <p>Catch my latest Fortnite and anime gameplay streams!</p>
+      <a href="stream.html" class="button">Watch Now</a>
+    </div>
+  </div>
+
+  <!-- Videos Section -->
+  <div class="section" id="videos">
+    <h2>Highlights & Clips</h2>
+    <div class="card">
+      <p>Epic moments, funny fails, and insane plays.</p>
+      <a href="videos.html" class="button">View Clips</a>
+    </div>
+  </div>
+
+  <!-- About Section -->
+  <div class="section" id="about">
+    <h2>About Me</h2>
+    <div class="card">
+      <p>Welcome to my gaming universe! I play Fortnite, anime games, and share the funniest moments from my streams.</p>
+      <a href="about.html" class="button">Learn More</a>
+    </div>
+  </div>
+
+  <!-- Games Section -->
+  <div class="section" id="games">
+    <h2>Games I Play</h2>
+    <div class="card">
+      <p>Fortnite, Anime Games, Party Games, and more!</p>
+      <a href="games.html" class="button">See Games</a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    &copy; 2026 IsaacDaSigma. All rights reserved.
+  </footer>
 
 </body>
 </html>
