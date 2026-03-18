@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streams - IsaacDaSigma</title>
+
+  <!-- Fortnite-style font -->
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Luckiest Guy', cursive;
+      background: linear-gradient(135deg, #000000, #ff0000, #ffffff);
+      color: white;
+      min-height: 100vh;
+    }
+
+    /* Navigation Bar */
+    nav {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: center;
+      padding: 15px 0;
+      z-index: 1000;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 20px;
+      font-size: 1.2rem;
+      transition: color 0.3s;
+    }
+
+    nav a:hover {
+      color: #ff0000;
+    }
+
+    header {
+      text-align: center;
+      margin: 60px 20px 40px 20px;
+    }
+
+    header h1 {
+      font-size: 3rem;
+      color: #ff0000;
+      text-shadow: 2px 2px 10px black;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      font-size: 1.2rem;
+      text-shadow: 1px 1px 5px black;
+    }
+
+    .section {
+      margin: 50px 20px;
+      text-align: center;
+    }
+
+    .section h2 {
+      font-size: 2rem;
+      color: #ffffff;
+      text-shadow: 1px 1px 5px black;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: rgba(0,0,0,0.7);
+      padding: 20px;
+      border-radius: 12px;
+      margin: 10px auto;
+      max-width: 800px;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .card:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 20px #ff0000;
+    }
+
+    a.button {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 10px 25px;
+      background: #ff0000;
+      color: #fff;
+      font-weight: bold;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+
+    a.button:hover {
+      background: #cc0000;
+    }
+
+    footer {
+      margin: 50px 0;
+      font-size: 0.9rem;
+      color: #ccc;
+      text-align: center;
+    }
+
+    iframe {
+      width: 100%;
+      height: 450px;
+      border-radius: 12px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="stream.html">Streams</a>
+    <a href="videos.html">Videos</a>
+    <a href="about.html">About</a>
+    <a href="games.html">Games</a>
+  </nav>
+
+  <!-- Header -->
+  <header>
+    <h1>Live Streams</h1>
+    <p>Watch my latest Fortnite and anime gameplay live!</p>
+  </header>
+
+  <!-- Streams Section -->
+  <div class="section">
+    <h2>Currently Live</h2>
+    <div class="card">
+      <!-- YouTube Live Embed -->
+      <iframe src="https://www.youtube.com/embed/live_stream?channel=UCIsaacDaSigma&autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Previous Streams</h2>
+    <div class="card">
+      📺 Past highlights and replays will be added here.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    &copy; 2026 IsaacDaSigma. All rights reserved.
+  </footer>
+
+</body>
+</html>
