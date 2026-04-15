@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Streams - IsaacDaSigma</title>
+  <title>Videos - IsaacDaSigma</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
 
@@ -13,6 +13,7 @@
     body {
       font-family: 'Luckiest Guy', cursive;
       background: linear-gradient(135deg, #000000, #ff0000, #ffffff);
+      background-attachment: fixed;
       color: white;
       min-height: 100vh;
     }
@@ -22,12 +23,13 @@
       position: sticky;
       top: 0;
       width: 100%;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.9);
       display: flex;
       justify-content: center;
       padding: 15px 0;
       z-index: 1000;
       box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      border-bottom: 2px solid #ff0000;
     }
 
     nav a {
@@ -35,28 +37,19 @@
       text-decoration: none;
       margin: 0 20px;
       font-size: 1.2rem;
-      transition: color 0.3s;
+      transition: color 0.3s, text-shadow 0.3s;
     }
 
     nav a:hover {
       color: #ff0000;
-    }
-
-    header {
-      text-align: center;
-      margin: 60px 20px 40px 20px;
-    }
-
-    header h1 {
-      font-size: 3rem;
-      color: #ff0000;
-      text-shadow: 2px 2px 10px black;
-      margin-bottom: 10px;
+      text-shadow: 0 0 10px #ff0000;
     }
 
     .section {
-      margin: 50px 20px;
+      margin: 60px auto;
       text-align: center;
+      max-width: 1200px;
+      padding: 0 20px;
     }
 
     .section h2 {
@@ -67,26 +60,24 @@
       text-transform: uppercase;
     }
 
-    /* Video Grid */
+    /* Video Grid (Standard 16:9) */
     .video-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 25px;
-      max-width: 1200px;
-      margin: 0 auto;
     }
 
-    /* Shorts Specific Grid (Taller aspect ratio) */
+    /* Shorts Specific Grid - Set to 280px to keep the short smaller */
     .shorts-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 280px));
       gap: 20px;
-      max-width: 1000px;
-      margin: 0 auto 50px auto;
+      justify-content: center; /* Centers the short if there is only one */
+      margin-bottom: 50px;
     }
 
     .video-card {
-      background: rgba(0,0,0,0.7);
+      background: rgba(0,0,0,0.8);
       padding: 15px;
       border-radius: 12px;
       transition: transform 0.3s, box-shadow 0.3s;
@@ -136,7 +127,16 @@
       font-size: 0.9rem;
       color: #ccc;
       text-align: center;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.8);
+      border-top: 1px solid #ff0000;
+    }
+
+    hr {
+      border: 0;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.5), transparent);
+      width: 80%;
+      margin: 0 auto;
     }
   </style>
 </head>
@@ -154,15 +154,21 @@
     <h2>Most Recent Shorts</h2>
     <div class="shorts-grid">
       <div class="video-card">
-        <h3>New Short 🔥</h3>
+        <h3>New Shoes 🔥</h3>
         <div class="shorts-container">
-          <iframe src="https://www.youtube.com/embed/VIDEO_ID_HERE" title="YouTube Short" allowfullscreen></iframe>
+          <iframe 
+            src="https://www.youtube.com/embed/57bq4_v9NtY" 
+            title="new shoes #memes" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            referrerpolicy="strict-origin-when-cross-origin" 
+            allowfullscreen>
+          </iframe>
         </div>
       </div>
     </div>
   </div>
 
-  <hr style="border: 1px solid rgba(,255,255,0.2); width: 80%; margin: 0 auto;">
+  <hr>
 
   <div class="section">
     <h2>Featured Videos</h2>
@@ -198,3 +204,4 @@
 
 </body>
 </html>
+ 
