@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Full Screen Game - IsaacDaSigma</title>
   <style>
-    /* Remove all default spacing and scrollbars */
-    body, html {
+    /* Force the page to have no margins and hide scrollbars */
+    html, body {
       margin: 0;
       padding: 0;
       width: 100%;
@@ -15,7 +15,7 @@
       background-color: #000;
     }
 
-    /* Make the game container fill the entire viewport */
+    /* The game container fills the entire browser window */
     #game {
       width: 100vw;
       height: 100vh;
@@ -30,10 +30,19 @@
       // EmulatorJS Configuration
       EJS_player = "#game";
       EJS_core = "gba"; 
-      EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/"; 
-      EJS_gameUrl = "https://dl.romsretro.com/roms/Pokemon_Fire_Red_1[romsretro.com].zip"; 
+      
+      /* Using the Githack CDN which is usually more stable for 
+         GitHub Pages than the default EmulatorJS CDN.
+      */
+      EJS_pathtodata = "https://raw.githack.com/EmulatorJS/EmulatorJS/main/data/"; 
+      
+      /* IMPORTANT: Change this to the EXACT filename of the ROM 
+         you upload to your GitHub repository.
+      */
+      EJS_gameUrl = "pokemon.zip"; 
   </script>
-  <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+  
+  <script src="https://raw.githack.com/EmulatorJS/EmulatorJS/main/data/loader.js"></script>
 
 </body>
 </html>
