@@ -114,14 +114,28 @@
   <h2>Special Classic</h2>
   <div class="card">
     <p>🌿 Catch 'em all! Pokemon Emerald Version</p>
-    <iframe 
-      src="https://geometry-spot.github.io/gba/pokemon-emerald/" 
-      width="100%" 
-      height="500" 
-      frameborder="0" 
-      allowfullscreen
-      scrolling="no">
-    </iframe>
+   <html>
+<head>
+    <style> body, html { margin: 0; padding: 0; } </style>
+</head>
+<body>
+    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999;">
+        <div id="game"></div>
+    </div>
+    <script>
+        EJS_player = "#game";
+        // E.g., 'nes', 'snes', 'gba', 'n64'
+        EJS_core = "mgba"; 
+        // Path to the CDN or your local data folder
+        EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/"; 
+        // URL to your zipped or raw ROM file
+        EJS_gameUrl = "https://dl.romsretro.com/roms/Pokemon_Fire_Red_1[romsretro.com].zip"; 
+    </script>
+    <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+</body>
+</html>
+
+
   </div>
 </div>
   
