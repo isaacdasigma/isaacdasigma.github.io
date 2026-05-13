@@ -3,147 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Games - IsaacDaSigma</title>
-
-  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
-
+  <title>Full Screen Game - IsaacDaSigma</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Luckiest Guy', cursive;
-      background: linear-gradient(135deg, #000000, #ff0000, #ffffff);
-      color: white;
-      min-height: 100vh;
-    }
-
-    /* Navigation Bar */
-    nav {
-      position: sticky;
-      top: 0;
+    /* Remove all default spacing and scrollbars */
+    body, html {
+      margin: 0;
+      padding: 0;
       width: 100%;
-      background: rgba(0,0,0,0.8);
-      display: flex;
-      justify-content: center;
-      padding: 15px 0;
-      z-index: 1000;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
     }
 
-    nav a {
-      color: white;
-      text-decoration: none;
-      margin: 0 20px;
-      font-size: 1.2rem;
-      transition: color 0.3s;
-    }
-
-    nav a:hover {
-      color: #ff0000;
-    }
-
-    header {
-      text-align: center;
-      margin: 60px 20px 40px 20px;
-    }
-
-    header h1 {
-      font-size: 3rem;
-      color: #ff0000;
-      text-shadow: 2px 2px 10px black;
-      margin-bottom: 10px;
-    }
-
-    .section {
-      margin: 50px 20px;
-      text-align: center;
-    }
-
-    .section h2 {
-      font-size: 2rem;
-      color: #ffffff;
-      text-shadow: 1px 1px 5px black;
-      margin-bottom: 20px;
-    }
-
-    .card {
-      background: rgba(0,0,0,0.7);
-      padding: 20px;
-      border-radius: 12px;
-      margin: 20px auto;
-      max-width: 900px;
-      transition: transform 0.3s, box-shadow 0.3s;
-      overflow: hidden; /* Keeps the game inside the rounded corners */
-    }
-
-    .card:hover {
-      transform: scale(1.01);
-      box-shadow: 0 0 20px #ff0000;
-    }
-
-    /* Standard height for all game containers */
-    iframe, .game-container {
-      width: 100%;
-      height: 500px; 
-      border-radius: 8px;
-      border: none;
-      margin-top: 15px;
-      background: #000;
-    }
-
-    footer {
-      margin: 50px 0;
-      font-size: 0.9rem;
-      color: #ccc;
-      text-align: center;
+    /* Make the game container fill the entire viewport */
+    #game {
+      width: 100vw;
+      height: 100vh;
     }
   </style>
 </head>
 <body>
 
-  <nav>
-    <a href="index.html">Home</a>
-    <a href="stream.html">Streams</a>
-    <a href="videos.html">Videos</a>
-    <a href="about.html">About</a>
-  </nav>
-
-  <header>
-    <h1>ISAAC'S ARCADE</h1>
-    <p>Play some classics while you hang out!</p>
-  </header>
-
-  <div class="section">
-    <h2>Special Classic</h2>
-    <div class="card">
-      <p>🌿 Catch 'em all! Pokemon Fire Red</p>
-      <div id="game" class="game-container"></div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>Featured Game</h2>
-    <div class="card">
-      <p>🔥 Try this game while you chill on the stream</p>
-      <iframe src="https://itch.io/embed-upload/10235322?color=333333"></iframe>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>More Games</h2>
-    <div class="card">
-      <p>🎯 Quick arcade action</p>
-      <iframe src="https://itch.io/embed-upload/10123456?color=333333"></iframe>
-    </div>
-  </div>
-
-  <footer>
-    &copy; 2026 IsaacDaSigma. All rights reserved.
-  </footer>
+  <div id="game"></div>
 
   <script>
+      // EmulatorJS Configuration
       EJS_player = "#game";
-      EJS_core = "gba"; // Changed to gba for Fire Red
+      EJS_core = "gba"; 
       EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/"; 
       EJS_gameUrl = "https://dl.romsretro.com/roms/Pokemon_Fire_Red_1[romsretro.com].zip"; 
   </script>
