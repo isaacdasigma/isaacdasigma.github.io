@@ -1,48 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Full Screen Game - IsaacDaSigma</title>
-  <style>
-    /* Force the page to have no margins and hide scrollbars */
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #000;
-    }
-
-    /* The game container fills the entire browser window */
-    #game {
-      width: 100vw;
-      height: 100vh;
-    }
-  </style>
+<meta charset="utf-8">
+<title>Test sample</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+body {
+    font-family:Verdana;
+    color: #333;
+    padding:100px;
+}
+.testClass{
+    background-color:orange;
+}
+</style>
 </head>
+
+
+
+
+
+<!--This is a default HTML sample.-->
+
+
+
+
+
 <body>
-
-  <div id="game"></div>
-
-  <script>
-      // EmulatorJS Configuration
-      EJS_player = "#game";
-      EJS_core = "gba"; 
-      
-      /* Using the Githack CDN which is usually more stable for 
-         GitHub Pages than the default EmulatorJS CDN.
-      */
-      EJS_pathtodata = "https://raw.githack.com/EmulatorJS/EmulatorJS/main/data/"; 
-      
-      /* IMPORTANT: Change this to the EXACT filename of the ROM 
-         you upload to your GitHub repository.
-      */
-      EJS_gameUrl = "pokemon.zip"; 
-  </script>
-  
-  <script src="https://raw.githack.com/EmulatorJS/EmulatorJS/main/data/loader.js"></script>
-
+<div class="testClass" onclick="clickMe()">
+You see a preview of the default HTML sample.
+<br>
+Click me to test the JavaScript functionality.
+</div>
+<script type="text/javascript">
+function clickMe()
+{
+var testClassDiv = document.getElementsByClassName("testClass")[0];
+var testText = testClassDiv.innerHTML;
+testClassDiv.innerHTML = testText.replace(/click me.+?functionality/i, "I was clicked, the JavaScript is working");
+}
+</script>
 </body>
 </html>
