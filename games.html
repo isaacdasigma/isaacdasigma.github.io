@@ -54,11 +54,6 @@
       margin-bottom: 10px;
     }
 
-    header p {
-      font-size: 1.2rem;
-      text-shadow: 1px 1px 5px black;
-    }
-
     .section {
       margin: 50px 20px;
       text-align: center;
@@ -78,19 +73,22 @@
       margin: 20px auto;
       max-width: 900px;
       transition: transform 0.3s, box-shadow 0.3s;
+      overflow: hidden; /* Keeps the game inside the rounded corners */
     }
 
     .card:hover {
-      transform: scale(1.03);
+      transform: scale(1.01);
       box-shadow: 0 0 20px #ff0000;
     }
 
-    iframe {
+    /* Standard height for all game containers */
+    iframe, .game-container {
       width: 100%;
-      height: 500px; /* Increased height slightly for the GBA aspect ratio */
-      border-radius: 12px;
+      height: 500px; 
+      border-radius: 8px;
       border: none;
       margin-top: 15px;
+      background: #000;
     }
 
     footer {
@@ -110,35 +108,18 @@
     <a href="about.html">About</a>
   </nav>
 
+  <header>
+    <h1>ISAAC'S ARCADE</h1>
+    <p>Play some classics while you hang out!</p>
+  </header>
+
   <div class="section">
-  <h2>Special Classic</h2>
-  <div class="card">
-    <p>🌿 Catch 'em all! Pokemon Emerald Version</p>
-   <html>
-<head>
-    <style> body, html { margin: 0; padding: 0; } </style>
-</head>
-<body>
-    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999;">
-        <div id="game"></div>
+    <h2>Special Classic</h2>
+    <div class="card">
+      <p>🌿 Catch 'em all! Pokemon Fire Red</p>
+      <div id="game" class="game-container"></div>
     </div>
-    <script>
-        EJS_player = "#game";
-        // E.g., 'nes', 'snes', 'gba', 'n64'
-        EJS_core = "mgba"; 
-        // Path to the CDN or your local data folder
-        EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/"; 
-        // URL to your zipped or raw ROM file
-        EJS_gameUrl = "https://dl.romsretro.com/roms/Pokemon_Fire_Red_1[romsretro.com].zip"; 
-    </script>
-    <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
-</body>
-</html>
-
-
   </div>
-</div>
-  
 
   <div class="section">
     <h2>Featured Game</h2>
@@ -150,22 +131,23 @@
 
   <div class="section">
     <h2>More Games</h2>
-
     <div class="card">
       <p>🎯 Quick arcade action</p>
       <iframe src="https://itch.io/embed-upload/10123456?color=333333"></iframe>
     </div>
-
-    <div class="card">
-      <p>🧠 Test your skills</p>
-      <iframe src="https://itch.io/embed-upload/10000000?color=333333"></iframe>
-    </div>
-
   </div>
 
   <footer>
     &copy; 2026 IsaacDaSigma. All rights reserved.
   </footer>
+
+  <script>
+      EJS_player = "#game";
+      EJS_core = "gba"; // Changed to gba for Fire Red
+      EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/"; 
+      EJS_gameUrl = "https://dl.romsretro.com/roms/Pokemon_Fire_Red_1[romsretro.com].zip"; 
+  </script>
+  <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
 
 </body>
 </html>
