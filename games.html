@@ -1,215 +1,118 @@
-<!-- Ultimate Game Stash file--> 
-<!-- For the regularly updating doc go to https://docs.google.com/document/d/1_FmH3BlSBQI7FGgAQL59-ZPe8eCxs35wel6JUyVaG8Q/ -->
-
 <!doctype html>
-    <html lang=en-us>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <title>Class of '09 - Isaac's Stash</title>
+    <meta content="width=device-width,initial-scale=1" name="viewport">
+    <style>
+        /* Full screen background and layout */
+        html, body {
+            background: #222;
+            color: #fff;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
 
-    <head>
-        <base href="https://cdn.jsdelivr.net/gh/genizy/web-port@main/class-of-09/">
-        <meta charset=utf-8>
-        <meta content="text/html; charset=utf-8" http-equiv=Content-Type>
-        <title>Class of '09</title>
-        <meta content="width=device-width,initial-scale=1" name=viewport>
-        <link href=icons/icon.png rel=icon sizes=72x72 type=image/png>
-        <meta content=#000 name=theme-color>
-        <style>
-            html {
-                background: #444;
-                font-family: sans-serif
-            }
+        /* The game screen */
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            border: 0 none;
+        }
 
-            #canvas {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: #000;
-                border: 0 none
-            }
+        /* The loading box */
+        #statusDiv {
+            background: rgba(0, 0, 0, .85);
+            width: 50%;
+            margin: auto;
+            min-width: 340px;
+            padding: 20px;
+            position: absolute;
+            top: 40%;
+            left: 0;
+            right: 0;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 10;
+            border: 1px solid #444;
+        }
 
-            .visible {
-                visibility: visible;
-                opacity: 1;
-                transition: opacity .1s linear
-            }
+        #statusTextDiv {
+            margin-bottom: 10px;
+            color: #eee;
+        }
 
-            .hidden {
-                visibility: hidden;
-                opacity: 0;
-                transition: visibility 0s .25s, opacity .25s linear
-            }
+        progress {
+            width: 100%;
+            height: 20px;
+        }
 
-            #inputDiv,
-            #statusDiv {
-                background: rgba(0, 0, 0, .75);
-                width: 50%;
-                margin: auto;
-                min-width: 340px;
-                padding: 10px;
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                border-radius: 0 0 5px 5px
-            }
+        /* Menu button in the corner */
+        #ContextContainer {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            z-index: 100;
+        }
 
-            #statusTextDiv {
-                overflow: auto;
-                max-height: 40vh;
-                color: #ccc;
-                font-size: 14px
-            }
+        #ContextButton {
+            text-decoration: none;
+            color: #d3d3d3;
+            font-size: 30px;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
 
-            #statusProgress {
-                display: none;
-                width: 100%
-            }
-
-            #inputDiv {
-                width: 65%;
-                padding-left: 10px;
-                padding-right: 20px
-            }
-
-            #inputPrompt {
-                color: #eee;
-                font-size: 150%;
-                margin-bottom: 1em;
-                margin-top: 1em
-            }
-
-            #inputText {
-                width: 100%;
-                font-size: 175%;
-                padding: 5px;
-                background: inherit;
-                color: #eee
-            }
-
-            #inputText:focus {
-                color: #fff
-            }
-
-            #ContextContainer {
-                position: absolute;
-                left: 0;
-                top: 0;
-                color: #fff
-            }
-
-            #ContextContainer.shown {
-                background: rgba(0, 0, 0, .5);
-                border-radius: 0 0 5px 0
-            }
-
-            #ContextButton {
-                text-decoration: none;
-                color: #d3d3d3;
-                font-size: xx-large;
-                cursor: pointer;
-                user-select: none;
-                -moz-user-select: none;
-                padding: 10px 10px;
-                opacity: .75
-            }
-
-            #ContextButton:focus {
-                outline: 0;
-                color: #fff;
-                opacity: 1
-            }
-
-            #ContextMenu a {
-                text-decoration: none;
-                color: #d3d3d3;
-                background: #444;
-                height: 48px;
-                width: 250px;
-                border-radius: 5px;
-                border: 1px solid #d3d3d3;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 5px 5px;
-                opacity: 1
-            }
-
-            #ContextMenu a:hover {
-                text-decoration: none;
-                background: #666;
-                color: #fff
-            }
-
-            #presplash {
-                position: absolute;
-                top: 0;
-                left: 0;
-                display: block;
-                margin: auto;
-                width: 100%;
-                height: 100%;
-                object-fit: contain
-            }
-        </style>
-    </head>
-
-    <body>
-        <script>
-            function mergeFiles(fileParts) {
-                return new Promise((resolve, reject) => {
-                    let buffers = [];
+<body>
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
     
-                    function fetchPart(index) {
-                        if (index >= fileParts.length) {
-                            let mergedBlob = new Blob(buffers);
-                            let mergedFileUrl = URL.createObjectURL(mergedBlob);
-                            resolve(mergedFileUrl);
-                            return;
-                        }
-                        fetch(fileParts[index]).then((response) => response.arrayBuffer()).then((data) => {
-                            buffers.push(data);
-                            fetchPart(index + 1);
-                        }).catch(reject);
-                    }
-                    fetchPart(0);
-                });
-            }
-    
-            function getParts(file, start, end) {
-                let parts = [];
-                for (let i = start; i <= end; i++) {
-                    parts.push(file + ".part" + i);
-                }
-                return parts;
-            }
-            mergeFiles(getParts("game.zip", 1, 2)).then(async url => {
-                window.gameZipUrl = url;
-                let renpypre = document.createElement("script");
-                renpypre.src = "https://cdn.jsdelivr.net/gh/genizy/web-port@725a19f20c3f376529284c9f86299581719e8d19/class-of-09/renpy-pre.js"
-                let renpy = document.createElement("script");
-                renpy.src = "https://cdn.jsdelivr.net/gh/genizy/web-port@725a19f20c3f376529284c9f86299581719e8d19/class-of-09/renpy.js"
-                document.body.appendChild(renpypre);
-                document.body.appendChild(renpy);
-            });
-        </script>
-        <canvas id=canvas oncontextmenu=event.preventDefault() tabindex=-1></canvas><img id=presplash>
-        <div id=ContextContainer><a id=ContextButton>≡</a><br>
-            <div id=ContextMenu style=display:none><input id=ID_SavegamesImport accept=application/zip onchange=onSavegamesImport(this) style=display:none type=file><a href="javascript:document.getElementById('ID_SavegamesImport').click();">Import Saves</a><a href=javascript:onSavegamesExport();>Export Saves</a><a href="javascript:FSDownload('/log.txt', 'text/plain');">Download Log</a><a href=https://www.renpy.org/ target=_blank>Powered by Ren'Py</a></div>
-        </div>
-        <div id=statusDiv class=hidden>
-            <div id=statusTextDiv></div><progress id=statusProgress max=100 value=0></progress>
-        </div>
-        <div id=inputDiv class=hidden>
-            <form id=inputForm>
-                <div id=inputPrompt></div><input id=inputText>
-            </form>
-        </div>
-        <script>
-            navigator.serviceWorker && (navigator.serviceWorker.controller || navigator.serviceWorker.register("./service-worker.js", {
-                updateViaCache: "all"
-            }))
-        </script>
-    </body>
+    <div id="statusDiv">
+        <div id="statusTextDiv">Downloading game.zip...</div>
+        <progress id="statusProgress" max="100" value="0"></progress>
+    </div>
 
-    </html>
+    <div id="ContextContainer">
+        <a id="ContextButton" href="javascript:void(0)" onclick="const m=document.getElementById('ContextMenu'); m.style.display=(m.style.display=='none'?'block':'none')">≡</a>
+        <div id="ContextMenu" style="display:none; background: #333; padding: 10px; border-radius: 5px; margin-top: 5px;">
+            <a href="javascript:location.reload()" style="color:white; text-decoration:none; display:block; padding: 5px;">Restart Game</a>
+        </div>
+    </div>
+
+    <script>
+        /* 1. CONFIGURATION */
+        // We are now looking for "game.zip" exactly.
+        window.gameZipUrl = "game.zip"; 
+
+        /* 2. LOADING LOGIC */
+        // This wakes up the Ren'Py engine and tells it where to find your files
+        console.log("Preparing to load " + window.gameZipUrl);
+
+        function startRenpy() {
+            const pre = document.createElement("script");
+            pre.src = "https://raw.githack.com/genizy/web-port/main/class-of-09/renpy-pre.js";
+            
+            const main = document.createElement("script");
+            main.src = "https://raw.githack.com/genizy/web-port/main/class-of-09/renpy.js";
+            
+            document.body.appendChild(pre);
+            document.body.appendChild(main);
+        }
+
+        // Delay start slightly to ensure the browser is ready
+        setTimeout(startRenpy, 500);
+    </script>
+</body>
+</html>
