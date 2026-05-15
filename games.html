@@ -1,88 +1,118 @@
-
-<!-- Ultimate Game Stash file--> 
-<!-- For the regularly updating doc go to https://docs.google.com/document/d/1_FmH3BlSBQI7FGgAQL59-ZPe8eCxs35wel6JUyVaG8Q/ -->
-
+<!doctype html>
 <html lang="en-us">
-<base href="https://cdn.jsdelivr.net/gh/bubbls/UGS-Assets@8b3b8522e7e0c3f94588a5d2364f49e7829f993e/deepest%20sword/">
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <title>Deepest Sword</title>
-  <style>
-    html,
-    body {
-      background: #000;
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-      padding: 0;
-      margin: 0;
-    }
+    <meta charset="utf-8">
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <title>Class of '09 - Isaac's Stash</title>
+    <meta content="width=device-width,initial-scale=1" name="viewport">
+    <style>
+        /* Full screen background and layout */
+        html, body {
+            background: #222;
+            color: #fff;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
 
-    div#gameContainer {
-      background: transparent !important;
-      position: absolute;
-    }
+        /* The game screen */
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            border: 0 none;
+        }
 
-    div#gameContainer canvas {
-      position: absolute;
-    }
-  </style>
+        /* The loading box */
+        #statusDiv {
+            background: rgba(0, 0, 0, .85);
+            width: 50%;
+            margin: auto;
+            min-width: 340px;
+            padding: 20px;
+            position: absolute;
+            top: 40%;
+            left: 0;
+            right: 0;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 10;
+            border: 1px solid #444;
+        }
+
+        #statusTextDiv {
+            margin-bottom: 10px;
+            color: #eee;
+        }
+
+        progress {
+            width: 100%;
+            height: 20px;
+        }
+
+        /* Menu button in the corner */
+        #ContextContainer {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            z-index: 100;
+        }
+
+        #ContextButton {
+            text-decoration: none;
+            color: #d3d3d3;
+            font-size: 30px;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 
 <body>
-  <div id="gameContainer">
-    <canvas id="unity-canvas"></canvas>
-    <script src="Build/WebBuilds.loader.js"></script>
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    
+    <div id="statusDiv">
+        <div id="statusTextDiv">Downloading game.zip...</div>
+        <progress id="statusProgress" max="100" value="0"></progress>
+    </div>
+
+    <div id="ContextContainer">
+        <a id="ContextButton" href="javascript:void(0)" onclick="const m=document.getElementById('ContextMenu'); m.style.display=(m.style.display=='none'?'block':'none')">≡</a>
+        <div id="ContextMenu" style="display:none; background: #333; padding: 10px; border-radius: 5px; margin-top: 5px;">
+            <a href="javascript:location.reload()" style="color:white; text-decoration:none; display:block; padding: 5px;">Restart Game</a>
+        </div>
+    </div>
+
     <script>
-      createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/WebBuilds.data",
-        frameworkUrl: "Build/WebBuilds.framework.js",
-        codeUrl: "Build/WebBuilds.wasm",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "Cosmic Adventure Squad",
-        productName: "Deepest Sword",
-        productVersion: "0.1.5c",
-      }).then(function(instance) {
-        var canvas = instance.Module.canvas;
-        var container = canvas.parentElement;
+        /* 1. CONFIGURATION */
+        // We are now looking for "game.zip" exactly.
+        window.gameZipUrl = "game.zip"; 
 
-        function onResize() {
-          var w;
-          var h;
+        /* 2. LOADING LOGIC */
+        // This wakes up the Ren'Py engine and tells it where to find your files
+        console.log("Preparing to load " + window.gameZipUrl);
 
-          if (scaleToFit) {
-            w = window.innerWidth;
-            h = window.innerHeight;
-
-            var r = 540 / 960;
-
-            if (w * r > window.innerHeight) {
-              w = Math.min(w, Math.ceil(h / r));
-            }
-            h = Math.floor(w * r);
-          } else {
-            w = 960;
-            h = 540;
-          }
-
-          container.style.width = canvas.style.width = w + "px";
-          container.style.height = canvas.style.height = h + "px";
-          container.style.top = Math.floor((window.innerHeight - h) / 2) + "px";
-          container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
+        function startRenpy() {
+            const pre = document.createElement("script");
+            pre.src = "https://raw.githack.com/genizy/web-port/main/class-of-09/renpy-pre.js";
+            
+            const main = document.createElement("script");
+            main.src = "https://raw.githack.com/genizy/web-port/main/class-of-09/renpy.js";
+            
+            document.body.appendChild(pre);
+            document.body.appendChild(main);
         }
 
-        var scaleToFit;
-        try {
-          scaleToFit = !!JSON.parse("");
-        } catch (e) {
-          scaleToFit = true;
-        }
-        window.addEventListener('resize', onResize);
-        onResize();
-      });
+        // Delay start slightly to ensure the browser is ready
+        setTimeout(startRenpy, 500);
     </script>
-  </div>
 </body>
-
 </html>
