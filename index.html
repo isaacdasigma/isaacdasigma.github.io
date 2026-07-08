@@ -35,8 +35,13 @@
             background-color: #2c2f33;
             border-radius: 5px;
             padding: 10px;
-            overflow-y: scroll;
+            overflow-y: auto;
             margin-bottom: 10px;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #333;
         }
         input[type="text"] {
             width: calc(100% - 80px);
@@ -61,23 +66,81 @@
 
     <div class="panel chat-box">
         <h2>Mod Chat</h2>
-        <div class="message-area">
-            <p><strong>System:</strong> Welcome to the Mod Hub!</p>
+        <div class="message-area" id="chat-box">
             </div>
-        <input type="text" placeholder="Type a message...">
-        <button>Send</button>
+        <input type="text" id="message-input" placeholder="Type a message...">
+        <button id="send-btn">Send</button>
     </div>
 
     <div class="panel check-in-box">
         <h2>Daily Check-In</h2>
-        <p>Click below to log your activity for today.</p>
+        <p>Click below to log your activity.</p>
         <button style="width: 100%; margin-bottom: 10px;">I'm Online!</button>
-        <h3>Recent Check-ins:</h3>
-        <ul>
-            <li>Mod1 - 10:00 AM</li>
-            <li>Mod2 - 11:30 AM</li>
-        </ul>
     </div>
 
+    <script type="module">
+        // Import Firebase tools
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        // REPLACE THIS WITH YOUR FIREBASE CONFIG
+       // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBs0VOQKKKV3EdqTBzw4rPcI-OYZURPZE0",
+  authDomain: "modchat-b8c23.firebaseapp.com",
+  projectId: "modchat-b8c23",
+  storageBucket: "modchat-b8c23.firebasestorage.app",
+  messagingSenderId: "916578766029",
+  appId: "1:916578766029:web:cab0af949f5b0e0c286d84",
+  measurementId: "G-4X1FDLJEJP"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const messagesRef = ref(db, 'messages');
+
+        // Chat Logic
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        // Send a message to the database
+        sendBtn.addEventListener('click', () => {
+            const text = messageInput.value;
+            if (text.trim() !== "") {
+                push(messagesRef, {
+                    user: "Mod", // You can change this to prompt for a username later!
+                    text: text,
+                    timestamp: Date.now()
+                });
+                messageInput.value = '';
+            }
+        });
+
+        // Listen for new messages and display them instantly
+        onChildAdded(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.innerHTML = `<strong>${data.user}:</strong> ${data.text}`;
+            chatBox.appendChild(messageElement);
+            
+            // Auto-scroll to bottom
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+    </script>
 </body>
 </html>
