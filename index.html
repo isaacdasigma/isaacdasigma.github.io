@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Cursed Soul - Enhanced Characters & Balanced Boss</title>
+    <title>The Cursed Soul - Co-op Sync & Chat</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #040406; color: #e2e8f0; font-family: 'Georgia', serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
@@ -34,6 +35,23 @@
         .forge-btn:hover { background: #8b5cf6; }
         .forge-btn:disabled { background: #334155; cursor: not-allowed; opacity: 0.6; }
 
+        /* Lobby / Multiplayer Input Overlay */
+        #multiplayerUI { position: absolute; top: 320px; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: auto; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        #codeDisplay { color: #38bdf8; font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; letter-spacing: 1px; }
+        .mp-input-group { display: flex; gap: 8px; margin-top: 4px; }
+        #joinCodeInput { background: rgba(10, 10, 16, 0.85); border: 1px solid #7c3aed; color: #fff; padding: 6px 12px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 14px; width: 140px; text-align: center; outline: none; }
+        #joinBtn { background: #6d28d9; border: none; color: white; padding: 6px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; font-family: 'Courier New', monospace; transition: all 0.2s; }
+        #joinBtn:hover { background: #8b5cf6; }
+
+        /* In-Game Chat Overlay */
+        #chatContainer { position: absolute; bottom: 35px; right: 16px; width: 260px; height: 180px; background: rgba(10, 10, 16, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.4); border-radius: 6px; display: none; flex-direction: column; pointer-events: auto; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+        #chatLog { flex: 1; overflow-y: auto; padding: 8px; font-family: 'Courier New', monospace; font-size: 11px; color: #e2e8f0; display: flex; flex-direction: column; gap: 4px; }
+        .chat-msg { word-break: break-word; line-height: 1.3; }
+        .chat-host { color: #a78bfa; font-weight: bold; }
+        .chat-peer { color: #f472b6; font-weight: bold; }
+        .chat-sys { color: #38bdf8; font-style: italic; }
+        #chatInput { background: rgba(0, 0, 0, 0.6); border: none; border-top: 1px solid rgba(255, 255, 255, 0.1); color: #fff; padding: 8px; font-family: 'Courier New', monospace; font-size: 11px; outline: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+
         #controlsBar { position: absolute; bottom: 10px; left: 16px; font-size: 11px; color: #64748b; letter-spacing: 1px; text-transform: uppercase; pointer-events: none; }
     </style>
 </head>
@@ -42,6 +60,15 @@
 <div id="gameContainer">
     <canvas id="gameCanvas" width="1024" height="576"></canvas>
     
+    <div id="multiplayerUI">
+        <div id="codeDisplay">ROOM CODE: <span id="myCodeText">----</span></div>
+        <div class="mp-input-group">
+            <input type="text" id="joinCodeInput" maxlength="4" placeholder="4-DIGIT CODE">
+            <button id="joinBtn" onclick="Network.joinRoom()">JOIN</button>
+        </div>
+        <div id="connectionStatus" style="font-size: 11px; color: #a78bfa; margin-top: 2px;">Waiting for connection...</div>
+    </div>
+
     <div id="uiOverlay">
         <div class="hud-card">
             <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 2px;">Vitality</div>
@@ -56,6 +83,11 @@
             <div id="roomText" style="color: #60a5fa; font-size: 13px; font-weight: bold; margin-top: 2px;">Chamber: 1 (Endless)</div>
             <div id="objectiveText" style="color: #f59e0b; font-size: 11px; margin-top: 4px;">Purge the Corrupted</div>
         </div>
+    </div>
+
+    <div id="chatContainer">
+        <div id="chatLog"></div>
+        <input type="text" id="chatInput" placeholder="Press Enter to chat..." maxlength="80">
     </div>
 
     <div id="controlsBar">[WASD] Move | [L-Click] Attack | [Q] Parry | [R-Click / E] Nova | [U] Soul Forge | [R] Restart</div>
@@ -123,6 +155,138 @@
 </div>
 
 <script>
+// --- MULTIPLAYER NETWORK & SYNC ENGINE ---
+const Network = {
+    peer: null,
+    conn: null,
+    isHost: true,
+    myCode: Math.floor(1000 + Math.random() * 9000).toString(),
+    
+    init() {
+        document.getElementById("myCodeText").innerText = this.myCode;
+        this.peer = new Peer('cursed-soul-v2-' + this.myCode);
+
+        this.peer.on('open', (id) => {
+            console.log('Peer connected with ID:', id);
+        });
+
+        this.peer.on('connection', (c) => {
+            this.conn = c;
+            this.isHost = true;
+            this.setupConnection();
+            document.getElementById("connectionStatus").innerText = "PEER CONNECTED!";
+            this.addChatMessage("System", "Player joined your lobby!", "chat-sys");
+        });
+
+        this.peer.on('error', (err) => {
+            document.getElementById("connectionStatus").innerText = "Connection error. Try code again.";
+        });
+    },
+
+    joinRoom() {
+        const inputCode = document.getElementById("joinCodeInput").value.trim();
+        if (inputCode.length !== 4) {
+            document.getElementById("connectionStatus").innerText = "Enter valid 4-digit code!";
+            return;
+        }
+        document.getElementById("connectionStatus").innerText = "Connecting...";
+        this.conn = this.peer.connect('cursed-soul-v2-' + inputCode);
+        this.isHost = false;
+        this.setupConnection();
+    },
+
+    setupConnection() {
+        this.conn.on('open', () => {
+            document.getElementById("connectionStatus").innerText = "CONNECTED!";
+            document.getElementById("chatContainer").style.display = "flex";
+            this.addChatMessage("System", "Connected to co-op session!", "chat-sys");
+        });
+
+        this.conn.on('data', (data) => {
+            if (data.type === 'playerUpdate') {
+                if (!Game.remotePlayer) {
+                    Game.remotePlayer = new Player(data.x, data.y);
+                }
+                Game.remotePlayer.x = data.x;
+                Game.remotePlayer.y = data.y;
+                Game.remotePlayer.facingAngle = data.facingAngle;
+                Game.remotePlayer.hp = data.hp;
+                Game.remotePlayer.maxHp = data.maxHp;
+                Game.remotePlayer.isAttacking = data.isAttacking;
+                Game.remotePlayer.isParrying = data.isParrying;
+            } else if (data.type === 'chat') {
+                this.addChatMessage(this.isHost ? "Peer" : "Host", data.text, this.isHost ? "chat-peer" : "chat-host");
+            } else if (data.type === 'damageEnemy' && this.isHost) {
+                // Apply damage hit from peer on host's authority
+                if (data.isBoss && Game.boss) {
+                    Game.boss.hp -= data.damage;
+                    Game.addFloatingText(`-${data.damage}`, Game.boss.x, Game.boss.y - 20, "#fbbf24");
+                } else if (Game.enemies[data.index]) {
+                    Game.enemies[data.index].hp -= data.damage;
+                    Game.addFloatingText(`-${data.damage}`, Game.enemies[data.index].x, Game.enemies[data.index].y - 15, "#fbbf24");
+                }
+            } else if (data.type === 'gameState' && !this.isHost) {
+                // Sync state from Host to Guest
+                Game.syncFromHost(data);
+            }
+        });
+    },
+
+    sendState() {
+        if (this.conn && this.conn.open && Game.player) {
+            this.conn.send({
+                type: 'playerUpdate',
+                x: Game.player.x,
+                y: Game.player.y,
+                facingAngle: Game.player.facingAngle,
+                hp: Game.player.hp,
+                maxHp: Game.player.maxHp,
+                isAttacking: Game.player.isAttacking,
+                isParrying: Game.player.isParrying
+            });
+
+            if (this.isHost) {
+                this.conn.send({
+                    type: 'gameState',
+                    room: Game.currentRoom,
+                    enemies: Game.enemies.map(e => ({
+                        type: e.constructor.name,
+                        x: e.x, y: e.y, hp: e.hp, maxHp: e.maxHp, radius: e.radius
+                    })),
+                    boss: Game.boss ? {
+                        x: Game.boss.x, y: Game.boss.y, hp: Game.boss.hp, maxHp: Game.boss.maxHp,
+                        phase: Game.boss.phase, bossType: Game.boss.bossType, radius: Game.boss.radius
+                    } : null,
+                    portal: Game.portal ? { x: Game.portal.x, y: Game.portal.y } : null
+                });
+            }
+        }
+    },
+
+    sendDamage(index, damage, isBoss = false) {
+        if (this.conn && this.conn.open) {
+            this.conn.send({ type: 'damageEnemy', index, damage, isBoss });
+        }
+    },
+
+    sendChat(text) {
+        if (!text.trim()) return;
+        if (this.conn && this.conn.open) {
+            this.conn.send({ type: 'chat', text });
+        }
+        this.addChatMessage("You", text, this.isHost ? "chat-host" : "chat-peer");
+    },
+
+    addChatMessage(sender, text, cls) {
+        const log = document.getElementById("chatLog");
+        const msgEl = document.createElement("div");
+        msgEl.className = "chat-msg";
+        msgEl.innerHTML = `<span class="${cls}">${sender}:</span> ${text}`;
+        log.appendChild(msgEl);
+        log.scrollTop = log.scrollHeight;
+    }
+};
+
 // --- PROCEDURAL AUDIO SYNTHESIZER ---
 const AudioEngine = {
     ctx: null,
@@ -161,7 +325,15 @@ const Ctx = Canvas.getContext("2d");
 const Keys = {};
 const Mouse = { x: 0, y: 0 };
 
+document.getElementById("chatInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        Network.sendChat(e.target.value);
+        e.target.value = "";
+    }
+});
+
 window.addEventListener("keydown", e => { 
+    if (document.activeElement === document.getElementById("joinCodeInput") || document.activeElement === document.getElementById("chatInput")) return;
     AudioEngine.init();
     Keys[e.key.toLowerCase()] = true; 
     
@@ -180,6 +352,7 @@ Canvas.addEventListener("mousemove", e => {
     Mouse.x = e.clientX - rect.left; Mouse.y = e.clientY - rect.top;
 });
 Canvas.addEventListener("mousedown", e => { 
+    if (document.activeElement === document.getElementById("joinCodeInput") || document.activeElement === document.getElementById("chatInput")) return;
     AudioEngine.init(); 
     if (Game.state === "TITLE") {
         Game.startFromTitle();
@@ -272,9 +445,9 @@ class LootDrop {
     }
 }
 
-// --- PLAYER CONTROLLER WITH ENHANCED GRAPHICS ---
+// --- PLAYER CONTROLLER ---
 class Player {
-    constructor(x, y) {
+    constructor(x, y, isPeer = false) {
         this.x = x; this.y = y; this.radius = 16; this.baseSpeed = 3.8;
         this.hp = 100; this.maxHp = 100; this.stamina = 100; this.maxStamina = 100;
         this.mana = 100; this.maxMana = 100; this.souls = 0;
@@ -291,6 +464,7 @@ class Player {
         this.facingAngle = 0; this.attackBox = { x: 0, y: 0, radius: 0, damage: 0 };
         
         this.animFrame = 0;
+        this.isPeer = isPeer;
     }
 
     getBladeCost() { return 30 + (this.bladeLevel - 1) * 20; }
@@ -379,12 +553,14 @@ class Player {
                 let a = (Math.PI * 2 / 36) * i;
                 Game.particles.push(new Particle(this.x, this.y, Math.cos(a) * 7, Math.sin(a) * 7, "#60a5fa", 5, 25));
             }
-            Game.enemies.concat(Game.boss ? [Game.boss] : []).forEach(enemy => {
+            Game.enemies.concat(Game.boss ? [Game.boss] : []).forEach((enemy, index) => {
                 if (Math.hypot(enemy.x - this.x, enemy.y - this.y) < radius) {
-                    enemy.hp -= 65;
-                    Game.addFloatingText("-65 NOVA!", enemy.x, enemy.y - 15, "#60a5fa");
-                    let pushA = Math.atan2(enemy.y - this.y, enemy.x - this.x);
-                    enemy.x += Math.cos(pushA) * 40; enemy.y += Math.sin(pushA) * 40;
+                    if (Network.isHost) {
+                        enemy.hp -= 65;
+                        Game.addFloatingText("-65 NOVA!", enemy.x, enemy.y - 15, "#60a5fa");
+                    } else {
+                        Network.sendDamage(index, 65, enemy === Game.boss);
+                    }
                 }
             });
         }
@@ -400,7 +576,7 @@ class Player {
             Game.addScreenShake(12);
             Game.addFloatingText("PARRIED!", this.x, this.y - 25, "#38bdf8");
             
-            if (attacker) {
+            if (attacker && Network.isHost) {
                 attacker.hp -= 40;
                 let pushA = Math.atan2(attacker.y - this.y, attacker.x - this.x);
                 attacker.x += Math.cos(pushA) * 50; attacker.y += Math.sin(pushA) * 50;
@@ -415,7 +591,7 @@ class Player {
 
     draw() {
         let auraGrad = Ctx.createRadialGradient(this.x, this.y, 4, this.x, this.y, 90);
-        auraGrad.addColorStop(0, this.isParrying ? "rgba(56, 189, 248, 0.45)" : "rgba(139, 92, 246, 0.3)");
+        auraGrad.addColorStop(0, this.isParrying ? "rgba(56, 189, 248, 0.45)" : (this.isPeer ? "rgba(236, 72, 153, 0.3)" : "rgba(139, 92, 246, 0.3)"));
         auraGrad.addColorStop(1, "rgba(0,0,0,0)");
         Ctx.fillStyle = auraGrad; Ctx.beginPath(); Ctx.arc(this.x, this.y, 90, 0, Math.PI * 2); Ctx.fill();
 
@@ -424,12 +600,11 @@ class Player {
         Ctx.fillStyle = "#3b0764"; Ctx.beginPath();
         Ctx.moveTo(-10, -12); Ctx.lineTo(-24 - Math.sin(this.animFrame)*3, 0); Ctx.lineTo(-10, 12); Ctx.closePath(); Ctx.fill();
 
-        Ctx.fillStyle = this.iFrames ? "#e2e8f0" : "#581c87";
+        Ctx.fillStyle = this.iFrames ? "#e2e8f0" : (this.isPeer ? "#be185d" : "#581c87");
         Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
-        Ctx.strokeStyle = this.isParrying ? "#38bdf8" : "#c4b5fd"; Ctx.lineWidth = 2.5; Ctx.stroke();
+        Ctx.strokeStyle = this.isParrying ? "#38bdf8" : (this.isPeer ? "#f472b6" : "#c4b5fd"); Ctx.lineWidth = 2.5; Ctx.stroke();
 
-        Ctx.fillStyle = this.isParrying ? "#38bdf8" : "#38bdf8";
-        Ctx.shadowColor = "#38bdf8"; Ctx.shadowBlur = 8;
+        Ctx.fillStyle = "#38bdf8"; Ctx.shadowColor = "#38bdf8"; Ctx.shadowBlur = 8;
         Ctx.fillRect(2, -4, 7, 3); Ctx.fillRect(2, 2, 7, 3);
         Ctx.shadowBlur = 0;
 
@@ -470,7 +645,8 @@ class BerserkerEnemy {
     }
     update(player) {
         this.animFrame += 0.1;
-        let a = Math.atan2(player.y - this.y, player.x - this.x);
+        let target = (Game.remotePlayer && Math.hypot(Game.remotePlayer.x - this.x, Game.remotePlayer.y - this.y) < Math.hypot(player.x - this.x, player.y - this.y)) ? Game.remotePlayer : player;
+        let a = Math.atan2(target.y - this.y, target.x - this.x);
         this.x += Math.cos(a) * this.speed; this.y += Math.sin(a) * this.speed;
         this.x = Math.max(this.radius, Math.min(Canvas.width - this.radius, this.x));
         this.y = Math.max(this.radius, Math.min(Canvas.height - this.radius, this.y));
@@ -482,19 +658,14 @@ class BerserkerEnemy {
     draw() {
         let angle = Math.atan2(Game.player.y - this.y, Game.player.x - this.x);
         Ctx.save(); Ctx.translate(this.x, this.y); Ctx.rotate(angle);
-
         Ctx.fillStyle = "#78350f";
         Ctx.beginPath(); Ctx.moveTo(0, -16); Ctx.lineTo(14, -26); Ctx.lineTo(6, -12); Ctx.fill();
         Ctx.beginPath(); Ctx.moveTo(0, 16); Ctx.lineTo(14, 26); Ctx.lineTo(6, 12); Ctx.fill();
-
         Ctx.fillStyle = "#991b1b"; Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = "#451a03"; Ctx.lineWidth = 3; Ctx.stroke();
-
         Ctx.fillStyle = "#fef08a"; Ctx.shadowColor = "#ef4444"; Ctx.shadowBlur = 8;
         Ctx.beginPath(); Ctx.arc(8, -6, 3, 0, Math.PI * 2); Ctx.arc(8, 6, 3, 0, Math.PI * 2); Ctx.fill();
-
         Ctx.restore();
-
         Ctx.fillStyle = "#1e293b"; Ctx.fillRect(this.x - 18, this.y - 28, 36, 5);
         Ctx.fillStyle = "#ef4444"; Ctx.fillRect(this.x - 18, this.y - 28, Math.max(0, (this.hp / this.maxHp)) * 36, 5);
     }
@@ -512,7 +683,8 @@ class PhantomEnemy {
     }
     update(player) {
         this.animFrame += 0.15;
-        let a = Math.atan2(player.y - this.y, player.x - this.x);
+        let target = (Game.remotePlayer && Math.hypot(Game.remotePlayer.x - this.x, Game.remotePlayer.y - this.y) < Math.hypot(player.x - this.x, player.y - this.y)) ? Game.remotePlayer : player;
+        let a = Math.atan2(target.y - this.y, target.x - this.x);
         this.x += Math.cos(a) * this.speed; this.y += Math.sin(a) * this.speed;
         this.x = Math.max(this.radius, Math.min(Canvas.width - this.radius, this.x));
         this.y = Math.max(this.radius, Math.min(Canvas.height - this.radius, this.y));
@@ -524,19 +696,14 @@ class PhantomEnemy {
     draw() {
         let angle = Math.atan2(Game.player.y - this.y, Game.player.x - this.x);
         Ctx.save(); Ctx.translate(this.x, this.y); Ctx.rotate(angle);
-
         Ctx.fillStyle = "rgba(56, 189, 248, 0.35)";
         Ctx.beginPath(); Ctx.moveTo(0, -12); Ctx.lineTo(-26 - Math.sin(this.animFrame)*6, 0); Ctx.lineTo(0, 12); Ctx.fill();
-
         Ctx.fillStyle = "rgba(14, 165, 233, 0.75)";
         Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = "#bae6fd"; Ctx.lineWidth = 2; Ctx.stroke();
-
         Ctx.fillStyle = "#ffffff"; Ctx.shadowColor = "#38bdf8"; Ctx.shadowBlur = 10;
         Ctx.fillRect(4, -5, 4, 2); Ctx.fillRect(4, 3, 4, 2);
-
         Ctx.restore();
-
         Ctx.fillStyle = "#1e293b"; Ctx.fillRect(this.x - 15, this.y - 24, 30, 4);
         Ctx.fillStyle = "#ef4444"; Ctx.fillRect(this.x - 15, this.y - 24, Math.max(0, (this.hp / this.maxHp)) * 30, 4);
     }
@@ -556,8 +723,9 @@ class RangedEnemy {
     }
     update(player) {
         this.animFrame += 0.08;
-        let dist = Math.hypot(player.x - this.x, player.y - this.y);
-        let a = Math.atan2(player.y - this.y, player.x - this.x);
+        let target = (Game.remotePlayer && Math.hypot(Game.remotePlayer.x - this.x, Game.remotePlayer.y - this.y) < Math.hypot(player.x - this.x, player.y - this.y)) ? Game.remotePlayer : player;
+        let dist = Math.hypot(target.x - this.x, target.y - this.y);
+        let a = Math.atan2(target.y - this.y, target.x - this.x);
         if (dist < 190) { this.x -= Math.cos(a) * this.speed; this.y -= Math.sin(a) * this.speed; } 
         else if (dist > 290) { this.x += Math.cos(a) * this.speed; this.y += Math.sin(a) * this.speed; }
 
@@ -573,24 +741,18 @@ class RangedEnemy {
     draw() {
         let angle = Math.atan2(Game.player.y - this.y, Game.player.x - this.x);
         Ctx.save(); Ctx.translate(this.x, this.y);
-
         for(let i=0; i<3; i++) {
             let orbitA = this.animFrame + (Math.PI * 2 / 3) * i;
             let ox = Math.cos(orbitA) * 24; let oy = Math.sin(orbitA) * 24;
             Ctx.fillStyle = "#fbbf24"; Ctx.beginPath(); Ctx.arc(ox, oy, 3, 0, Math.PI * 2); Ctx.fill();
         }
-
         Ctx.rotate(angle);
-
         Ctx.fillStyle = "#d97706"; Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = "#fef08a"; Ctx.lineWidth = 2; Ctx.stroke();
-
         Ctx.fillStyle = "#f59e0b"; Ctx.fillRect(8, -8, 6, 16);
         Ctx.fillStyle = "#ffffff"; Ctx.shadowColor = "#f59e0b"; Ctx.shadowBlur = 8;
         Ctx.beginPath(); Ctx.arc(10, 0, 3, 0, Math.PI * 2); Ctx.fill();
-
         Ctx.restore();
-
         Ctx.fillStyle = "#1e293b"; Ctx.fillRect(this.x - 16, this.y - 25, 32, 4);
         Ctx.fillStyle = "#ef4444"; Ctx.fillRect(this.x - 16, this.y - 25, Math.max(0, (this.hp / this.maxHp)) * 32, 4);
     }
@@ -610,8 +772,9 @@ class CasterEnemy {
     }
     update(player) {
         this.animFrame += 0.05;
-        let a = Math.atan2(player.y - this.y, player.x - this.x);
-        let dist = Math.hypot(player.x - this.x, player.y - this.y);
+        let target = (Game.remotePlayer && Math.hypot(Game.remotePlayer.x - this.x, Game.remotePlayer.y - this.y) < Math.hypot(player.x - this.x, player.y - this.y)) ? Game.remotePlayer : player;
+        let a = Math.atan2(target.y - this.y, target.x - this.x);
+        let dist = Math.hypot(target.x - this.x, target.y - this.y);
         if (dist > 220) { this.x += Math.cos(a) * this.speed; this.y += Math.sin(a) * this.speed; }
 
         this.x = Math.max(this.radius, Math.min(Canvas.width - this.radius, this.x));
@@ -620,7 +783,7 @@ class CasterEnemy {
         this.timer++;
         if (this.timer >= this.shootCooldown) {
             this.timer = 0;
-            let baseAngle = Math.atan2(player.y - this.y, player.x - this.x);
+            let baseAngle = Math.atan2(target.y - this.y, target.x - this.x);
             [baseAngle - 0.3, baseAngle, baseAngle + 0.3].forEach(ang => {
                 let spd = 3.8;
                 Game.projectiles.push(new EnemyProjectile(this.x, this.y, Math.cos(ang) * spd, Math.sin(ang) * spd, this.damage, "#c084fc", 7));
@@ -629,30 +792,24 @@ class CasterEnemy {
     }
     draw() {
         Ctx.save(); Ctx.translate(this.x, this.y);
-
         Ctx.save(); Ctx.rotate(this.animFrame);
         Ctx.strokeStyle = "rgba(192, 132, 252, 0.6)"; Ctx.lineWidth = 1.5;
         Ctx.strokeRect(-22, -22, 44, 44);
         Ctx.restore();
-
         Ctx.fillStyle = "#581c87"; Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = "#e9d5ff"; Ctx.lineWidth = 2; Ctx.stroke();
-
         Ctx.fillStyle = "#c084fc"; Ctx.shadowColor = "#c084fc"; Ctx.shadowBlur = 10;
         Ctx.beginPath(); Ctx.arc(-4, -2, 3, 0, Math.PI * 2); Ctx.arc(4, -2, 3, 0, Math.PI * 2); Ctx.fill();
-
         Ctx.restore();
-
         Ctx.fillStyle = "#1e293b"; Ctx.fillRect(this.x - 16, this.y - 26, 32, 4);
         Ctx.fillStyle = "#ef4444"; Ctx.fillRect(this.x - 16, this.y - 26, Math.max(0, (this.hp / this.maxHp)) * 32, 4);
     }
 }
 
-// --- BALANCED & NERFED BOSS (The Cursed Warden) ---
+// --- BOSS ---
 class WardenBoss {
     constructor(x, y, levelMultiplier, roomNum) {
         this.x = x; this.y = y; this.radius = 38;
-        // Reduced base HP from 400 to 250
         this.maxHp = Math.floor(250 * levelMultiplier);
         this.hp = this.maxHp;
         this.phase = 1;
@@ -670,8 +827,8 @@ class WardenBoss {
             for(let i=0; i<20; i++) Game.particles.push(new Particle(this.x, this.y, (Math.random()-0.5)*8, (Math.random()-0.5)*8, "#ef4444", 6, 40));
         }
 
-        let a = Math.atan2(player.y - this.y, player.x - this.x);
-        // Reduced base movement speed
+        let target = (Game.remotePlayer && Math.hypot(Game.remotePlayer.x - this.x, Game.remotePlayer.y - this.y) < Math.hypot(player.x - this.x, player.y - this.y)) ? Game.remotePlayer : player;
+        let a = Math.atan2(target.y - this.y, target.x - this.x);
         let speed = (this.phase === 1 ? 0.7 : 1.3) + (this.levelMultiplier * 0.08);
         this.x += Math.cos(a) * speed; this.y += Math.sin(a) * speed;
         this.x = Math.max(this.radius, Math.min(Canvas.width - this.radius, this.x));
@@ -681,14 +838,9 @@ class WardenBoss {
             this.spinAngle += 0.10;
             let spd = 3.5, dmg = Math.floor(5 * this.levelMultiplier);
             this.shootTimer++;
-            // Reduced firing rate (fires every 4 frames)
             if (this.shootTimer % 4 === 0) {
                 Game.projectiles.push(new EnemyProjectile(this.x, this.y, Math.cos(this.spinAngle) * spd, Math.sin(this.spinAngle) * spd, dmg, "#f43f5e", 5));
                 Game.projectiles.push(new EnemyProjectile(this.x, this.y, Math.cos(this.spinAngle + Math.PI) * spd, Math.sin(this.spinAngle + Math.PI) * spd, dmg, "#f43f5e", 5));
-                if (this.phase === 2) {
-                    Game.projectiles.push(new EnemyProjectile(this.x, this.y, Math.cos(this.spinAngle + Math.PI/2) * spd, Math.sin(this.spinAngle + Math.PI/2) * spd, dmg, "#38bdf8", 5));
-                    Game.projectiles.push(new EnemyProjectile(this.x, this.y, Math.cos(this.spinAngle - Math.PI/2) * spd, Math.sin(this.spinAngle - Math.PI/2) * spd, dmg, "#38bdf8", 5));
-                }
             }
         }
 
@@ -703,30 +855,23 @@ class WardenBoss {
                     for (let i = 0; i < (this.phase === 1 ? 1 : 2); i++) {
                         let sx = this.x + (Math.random() - 0.5) * 120;
                         let sy = this.y + (Math.random() - 0.5) * 120;
-                        if (Math.random() > 0.5) {
-                            Game.enemies.push(new BerserkerEnemy(sx, sy, this.levelMultiplier));
-                        } else {
-                            Game.enemies.push(new PhantomEnemy(sx, sy, this.levelMultiplier));
-                        }
+                        Game.enemies.push(new BerserkerEnemy(sx, sy, this.levelMultiplier));
                     }
                 }
             }
         }
 
         if (Math.hypot(this.x - player.x, this.y - player.y) < this.radius + player.radius) {
-            // Reduced contact damage
             player.takeDamage((this.phase === 1 ? 8 : 14) * this.levelMultiplier, this);
         }
     }
 
     draw() {
         Ctx.save(); Ctx.translate(this.x, this.y);
-
         let auraGrad = Ctx.createRadialGradient(0, 0, 15, 0, 0, 150);
-        let auraColor = this.phase === 2 ? "rgba(239, 68, 68, 0.45)" : (this.bossType === 'spinner' ? "rgba(225, 29, 72, 0.35)" : "rgba(126, 34, 206, 0.35)");
+        let auraColor = this.phase === 2 ? "rgba(239, 68, 68, 0.45)" : "rgba(126, 34, 206, 0.35)";
         auraGrad.addColorStop(0, auraColor); auraGrad.addColorStop(1, "rgba(0,0,0,0)");
         Ctx.fillStyle = auraGrad; Ctx.beginPath(); Ctx.arc(0, 0, 150, 0, Math.PI * 2); Ctx.fill();
-
         Ctx.save(); Ctx.rotate(this.spinAngle);
         Ctx.strokeStyle = this.phase === 2 ? "#ef4444" : "#a855f7"; Ctx.lineWidth = 3;
         for(let i=0; i<8; i++) {
@@ -734,16 +879,12 @@ class WardenBoss {
             Ctx.beginPath(); Ctx.moveTo(Math.cos(a)*42, Math.sin(a)*42); Ctx.lineTo(Math.cos(a)*56, Math.sin(a)*56); Ctx.stroke();
         }
         Ctx.restore();
-
         Ctx.fillStyle = this.phase === 2 ? "#7f1d1d" : "#3b0764";
         Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = this.phase === 2 ? "#fca5a5" : "#e9d5ff"; Ctx.lineWidth = 4; Ctx.stroke();
-
-        Ctx.fillStyle = this.phase === 2 ? "#ef4444" : "#38bdf8"; Ctx.shadowColor = Ctx.fillStyle; Ctx.shadowBlur = 12;
+        Ctx.fillStyle = "#38bdf8"; Ctx.shadowColor = Ctx.fillStyle; Ctx.shadowBlur = 12;
         Ctx.fillRect(-12, -6, 24, 6);
-
         Ctx.restore();
-
         Ctx.fillStyle = "#0f172a"; Ctx.fillRect(this.x - 50, this.y - 58, 100, 10);
         Ctx.fillStyle = this.phase === 2 ? "#dc2626" : "#9333ea";
         Ctx.fillRect(this.x - 50, this.y - 58, Math.max(0, (this.hp / this.maxHp)) * 100, 10);
@@ -762,9 +903,9 @@ class Portal {
     }
 }
 
-// --- MAIN ENGINE ---
+// --- MAIN GAME ENGINE ---
 const Game = {
-    player: null, boss: null, enemies: [], projectiles: [], particles: [], loot: [], floatingTexts: [], portal: null,
+    player: null, remotePlayer: null, boss: null, enemies: [], projectiles: [], particles: [], loot: [], floatingTexts: [], portal: null,
     currentRoom: 1, screenShake: 0, hitStop: 0, state: "TITLE", dialogueIndex: 0, titlePulse: 0,
     loadingProgress: 0, loadingTargetState: "PLAYING", loadingTargetRoom: 1, loadingMessage: "Summoning Phantom Vessel...",
 
@@ -786,6 +927,7 @@ const Game = {
         this.player = new Player(180, 288);
         document.getElementById("uiOverlay").style.display = "none";
         document.getElementById("controlsBar").style.display = "none";
+        Network.init();
         requestAnimationFrame(this.loop.bind(this));
     },
 
@@ -797,6 +939,7 @@ const Game = {
         this.loadingMessage = msg || this.loadingTips[Math.floor(Math.random() * this.loadingTips.length)];
         document.getElementById("uiOverlay").style.display = "none";
         document.getElementById("dialogueBox").style.display = "none";
+        document.getElementById("multiplayerUI").style.display = "none";
     },
 
     startFromTitle() { this.startLoading("DIALOGUE", 1, "Entering the Cursed Crypt..."); },
@@ -817,23 +960,64 @@ const Game = {
         this.player.x = 180; this.player.y = 288;
         let levelMultiplier = 1 + (roomNum - 1) * 0.25;
 
-        if (roomNum % 5 === 0) {
-            this.boss = new WardenBoss(800, 288, levelMultiplier, roomNum);
-            let bName = this.boss.bossType === 'spinner' ? "MAELSTROM CANNON" : "SUMMONER WARDEN";
-            this.addFloatingText(`WARNING: ${bName} (CHAMBER ${roomNum})`, 512, 100, "#ef4444");
-        } else {
-            let enemyCount = Math.min(2 + Math.floor(roomNum * 0.7), 12);
-            for (let i = 0; i < enemyCount; i++) {
-                let rx = 550 + (Math.random() * 380);
-                let ry = 80 + (Math.random() * 416);
-                let typeRand = Math.random();
-                if (typeRand < 0.3) this.enemies.push(new BerserkerEnemy(rx, ry, levelMultiplier));
-                else if (typeRand < 0.55) this.enemies.push(new RangedEnemy(rx, ry, levelMultiplier));
-                else if (typeRand < 0.8) this.enemies.push(new CasterEnemy(rx, ry, levelMultiplier));
-                else this.enemies.push(new PhantomEnemy(rx, ry, levelMultiplier));
+        if (Network.isHost) {
+            if (roomNum % 5 === 0) {
+                this.boss = new WardenBoss(800, 288, levelMultiplier, roomNum);
+                this.addFloatingText(`WARNING: WARDEN CHAMBER ${roomNum}`, 512, 100, "#ef4444");
+            } else {
+                let enemyCount = Math.min(2 + Math.floor(roomNum * 0.7), 12);
+                for (let i = 0; i < enemyCount; i++) {
+                    let rx = 550 + (Math.random() * 380);
+                    let ry = 80 + (Math.random() * 416);
+                    let typeRand = Math.random();
+                    if (typeRand < 0.3) this.enemies.push(new BerserkerEnemy(rx, ry, levelMultiplier));
+                    else if (typeRand < 0.55) this.enemies.push(new RangedEnemy(rx, ry, levelMultiplier));
+                    else if (typeRand < 0.8) this.enemies.push(new CasterEnemy(rx, ry, levelMultiplier));
+                    else this.enemies.push(new PhantomEnemy(rx, ry, levelMultiplier));
+                }
             }
         }
         document.getElementById("roomText").innerText = `Chamber: ${roomNum} (Endless)`;
+    },
+
+    syncFromHost(data) {
+        this.currentRoom = data.room;
+        
+        // Re-align enemy array size and positions
+        while (this.enemies.length < data.enemies.length) {
+            let eData = data.enemies[this.enemies.length];
+            let newE;
+            if (eData.type === 'BerserkerEnemy') newE = new BerserkerEnemy(eData.x, eData.y, 1);
+            else if (eData.type === 'PhantomEnemy') newE = new PhantomEnemy(eData.x, eData.y, 1);
+            else if (eData.type === 'RangedEnemy') newE = new RangedEnemy(eData.x, eData.y, 1);
+            else newE = new CasterEnemy(eData.x, eData.y, 1);
+            this.enemies.push(newE);
+        }
+        this.enemies.length = data.enemies.length;
+
+        for (let i = 0; i < data.enemies.length; i++) {
+            this.enemies[i].x = data.enemies[i].x;
+            this.enemies[i].y = data.enemies[i].y;
+            this.enemies[i].hp = data.enemies[i].hp;
+            this.enemies[i].maxHp = data.enemies[i].maxHp;
+        }
+
+        if (data.boss) {
+            if (!this.boss) this.boss = new WardenBoss(data.boss.x, data.boss.y, 1, this.currentRoom);
+            this.boss.x = data.boss.x;
+            this.boss.y = data.boss.y;
+            this.boss.hp = data.boss.hp;
+            this.boss.maxHp = data.boss.maxHp;
+            this.boss.phase = data.boss.phase;
+        } else {
+            this.boss = null;
+        }
+
+        if (data.portal) {
+            if (!this.portal) this.portal = new Portal(data.portal.x, data.portal.y);
+        } else {
+            this.portal = null;
+        }
     },
 
     handleMouseClick() { if (this.state === "PLAYING") this.player.attack(); },
@@ -928,14 +1112,11 @@ const Game = {
         Ctx.shadowColor = "#8b5cf6"; Ctx.shadowBlur = 20;
         Ctx.strokeStyle = "rgba(139, 92, 246, 0.6)"; Ctx.lineWidth = 3;
         Ctx.beginPath(); Ctx.arc(0, 0, 50, 0, Math.PI * 2); Ctx.stroke();
-
         Ctx.strokeStyle = "rgba(196, 181, 253, 0.4)"; Ctx.lineWidth = 1;
         Ctx.beginPath(); Ctx.arc(0, 0, 42, 0, Math.PI * 2); Ctx.stroke();
-
         Ctx.fillStyle = "rgba(124, 58, 237, 0.25)"; Ctx.strokeStyle = "#c4b5fd"; Ctx.lineWidth = 2;
         Ctx.beginPath(); Ctx.moveTo(0, -60); Ctx.lineTo(35, 0); Ctx.lineTo(0, 60); Ctx.lineTo(-35, 0); Ctx.closePath();
         Ctx.fill(); Ctx.stroke();
-
         let coreGrad = Ctx.createRadialGradient(0, 0, 2, 0, 0, 18);
         coreGrad.addColorStop(0, "#ffffff"); coreGrad.addColorStop(0.4, "#a78bfa"); coreGrad.addColorStop(1, "rgba(124, 58, 237, 0)");
         Ctx.fillStyle = coreGrad; Ctx.beginPath(); Ctx.arc(0, 0, 18, 0, Math.PI * 2); Ctx.fill();
@@ -964,6 +1145,7 @@ const Game = {
         if (this.hitStop > 0) { this.hitStop--; return; }
 
         this.player.update();
+        Network.sendState();
         
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             this.projectiles[i].update(this.player);
@@ -971,12 +1153,19 @@ const Game = {
         }
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
-            let e = this.enemies[i]; e.update(this.player);
+            let e = this.enemies[i]; 
+            if (Network.isHost) e.update(this.player);
+
             if (this.player.isAttacking && Math.hypot(this.player.attackBox.x - e.x, this.player.attackBox.y - e.y) < this.player.attackBox.radius + e.radius) {
-                e.hp -= this.player.attackBox.damage; AudioEngine.play('hit');
-                this.addFloatingText(`-${this.player.attackBox.damage}`, e.x, e.y - 15, "#fbbf24");
+                if (Network.isHost) {
+                    e.hp -= this.player.attackBox.damage; AudioEngine.play('hit');
+                    this.addFloatingText(`-${this.player.attackBox.damage}`, e.x, e.y - 15, "#fbbf24");
+                } else {
+                    Network.sendDamage(i, this.player.attackBox.damage, false);
+                    AudioEngine.play('hit');
+                }
             }
-            if (e.hp <= 0) {
+            if (Network.isHost && e.hp <= 0) {
                 for(let j=0; j<3; j++) this.loot.push(new LootDrop(e.x, e.y, 'soul'));
                 if (Math.random() > 0.4) this.loot.push(new LootDrop(e.x, e.y, 'vitality'));
                 this.enemies.splice(i, 1);
@@ -984,19 +1173,24 @@ const Game = {
         }
 
         if (this.boss) {
-            this.boss.update(this.player);
+            if (Network.isHost) this.boss.update(this.player);
             if (this.player.isAttacking && Math.hypot(this.player.attackBox.x - this.boss.x, this.player.attackBox.y - this.boss.y) < this.player.attackBox.radius + this.boss.radius) {
-                this.boss.hp -= this.player.attackBox.damage; AudioEngine.play('hit');
-                this.addFloatingText(`-${this.player.attackBox.damage}`, this.boss.x, this.boss.y - 20, "#fbbf24");
+                if (Network.isHost) {
+                    this.boss.hp -= this.player.attackBox.damage; AudioEngine.play('hit');
+                    this.addFloatingText(`-${this.player.attackBox.damage}`, this.boss.x, this.boss.y - 20, "#fbbf24");
+                } else {
+                    Network.sendDamage(0, this.player.attackBox.damage, true);
+                    AudioEngine.play('hit');
+                }
             }
-            if (this.boss.hp <= 0) {
+            if (Network.isHost && this.boss.hp <= 0) {
                 for(let j=0; j<12; j++) this.loot.push(new LootDrop(this.boss.x, this.boss.y, 'soul'));
                 for(let j=0; j<3; j++) this.loot.push(new LootDrop(this.boss.x, this.boss.y, 'vitality'));
                 this.boss = null;
             }
         }
 
-        if (this.enemies.length === 0 && !this.boss && !this.portal) {
+        if (Network.isHost && this.enemies.length === 0 && !this.boss && !this.portal) {
             this.portal = new Portal(900, 288);
             this.addFloatingText(`CHAMBER ${this.currentRoom} PURGED`, 512, 100, "#a78bfa");
         }
@@ -1042,16 +1236,16 @@ const Game = {
             Ctx.fillText("THE CURSED SOUL", 512, 235);
 
             Ctx.fillStyle = "#94a3b8"; Ctx.font = "italic 16px Georgia"; Ctx.shadowBlur = 0;
-            Ctx.fillText("— An Infinite Dark Fantasy Descent —", 512, 275);
+            Ctx.fillText("— An Infinite Dark Fantasy Co-op Descent —", 512, 275);
 
             let alpha = (Math.sin(this.titlePulse) + 1) / 2;
             Ctx.globalAlpha = Math.max(0.2, alpha);
             Ctx.fillStyle = "#38bdf8"; Ctx.font = "bold 18px 'Courier New'";
-            Ctx.fillText("PRESS [ENTER] OR CLICK TO BEGIN", 512, 365);
+            Ctx.fillText("PRESS [ENTER] OR CLICK TO BEGIN", 512, 450);
             Ctx.globalAlpha = 1.0;
 
             Ctx.fillStyle = "#64748b"; Ctx.font = "12px 'Courier New'";
-            Ctx.fillText("[WASD] Move | [L-Click] Attack | [Q] Parry | [E] Nova | [U] Soul Forge | [R] Restart", 512, 460);
+            Ctx.fillText("[WASD] Move | [L-Click] Attack | [Q] Parry | [E] Nova | [U] Soul Forge | [R] Restart", 512, 510);
             Ctx.restore();
             return;
         }
@@ -1080,6 +1274,7 @@ const Game = {
         this.projectiles.forEach(p => p.draw(Ctx));
         this.enemies.forEach(e => e.draw());
         if (this.boss) this.boss.draw();
+        if (this.remotePlayer) { this.remotePlayer.isPeer = true; this.remotePlayer.draw(); }
         if (this.player) this.player.draw();
         this.particles.forEach(p => p.draw(Ctx));
 
