@@ -8,8 +8,19 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #040406; color: #e2e8f0; font-family: 'Georgia', serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
-        #gameContainer { position: relative; border: 2px solid #334155; box-shadow: 0 0 60px rgba(124, 58, 237, 0.35); border-radius: 8px; overflow: hidden; }
-        canvas { display: block; background: #09090e; }
+        
+        #gameContainer { 
+            position: relative; 
+            border: 2px solid #334155; 
+            box-shadow: 0 0 60px rgba(124, 58, 237, 0.35); 
+            border-radius: 8px; 
+            overflow: hidden; 
+            max-width: 100vw;
+            max-height: 100vh;
+            aspect-ratio: 16 / 9;
+            width: 1024px;
+        }
+        canvas { display: block; width: 100%; height: 100%; background: #09090e; }
         
         /* HUD UI */
         #uiOverlay { position: absolute; top: 16px; left: 16px; right: 16px; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-start; }
@@ -179,7 +190,7 @@ const Network = {
         });
 
         this.peer.on('error', (err) => {
-            document.getElementById("connectionStatus").innerText = "Connection error. Try code again.";
+            document.getElementById("connectionStatus").innerText = "Connection error. Retrying...";
         });
     },
 
@@ -202,13 +213,19 @@ const Network = {
             this.addChatMessage("System", "Connected to co-op session!", "chat-sys");
         });
 
+        this.conn.on('close', () => {
+            document.getElementById("connectionStatus").innerText = "PEER DISCONNECTED";
+            this.addChatMessage("System", "Peer disconnected.", "chat-sys");
+        });
+
         this.conn.on('data', (data) => {
             if (data.type === 'playerUpdate') {
                 if (!Game.remotePlayer) {
-                    Game.remotePlayer = new Player(data.x, data.y);
+                    Game.remotePlayer = new Player(data.x, data.y, true);
                 }
-                Game.remotePlayer.x = data.x;
-                Game.remotePlayer.y = data.y;
+                // Store target position for linear interpolation (lerp)
+                Game.remotePlayer.targetX = data.x;
+                Game.remotePlayer.targetY = data.y;
                 Game.remotePlayer.facingAngle = data.facingAngle;
                 Game.remotePlayer.hp = data.hp;
                 Game.remotePlayer.maxHp = data.maxHp;
@@ -217,16 +234,16 @@ const Network = {
             } else if (data.type === 'chat') {
                 this.addChatMessage(this.isHost ? "Peer" : "Host", data.text, this.isHost ? "chat-peer" : "chat-host");
             } else if (data.type === 'damageEnemy' && this.isHost) {
-                // Apply damage hit from peer on host's authority
                 if (data.isBoss && Game.boss) {
                     Game.boss.hp -= data.damage;
+                    Game.boss.flashTimer = 4;
                     Game.addFloatingText(`-${data.damage}`, Game.boss.x, Game.boss.y - 20, "#fbbf24");
                 } else if (Game.enemies[data.index]) {
                     Game.enemies[data.index].hp -= data.damage;
+                    Game.enemies[data.index].flashTimer = 4;
                     Game.addFloatingText(`-${data.damage}`, Game.enemies[data.index].x, Game.enemies[data.index].y - 15, "#fbbf24");
                 }
             } else if (data.type === 'gameState' && !this.isHost) {
-                // Sync state from Host to Guest
                 Game.syncFromHost(data);
             }
         });
@@ -287,34 +304,138 @@ const Network = {
     }
 };
 
-// --- PROCEDURAL AUDIO SYNTHESIZER ---
+// --- SOMAFM RADIO PLAYER ---
+const Radio = {
+    stations: [
+        { name: "Groove Salad", url: "https://ice2.somafm.com/groovesalad-128-mp3" },
+        { name: "Drone Zone", url: "https://ice2.somafm.com/dronezone-128-mp3" },
+        { name: "Dark Zone", url: "https://ice2.somafm.com/darkzone-128-mp3" },
+        { name: "Deep Space One", url: "https://ice2.somafm.com/deepspaceone-128-mp3" },
+        { name: "Secret Agent", url: "https://ice2.somafm.com/secretagent-128-mp3" }
+    ],
+
+    currentStation: 0,
+    muted: false,
+    audio: null,
+
+    init() {
+        if (this.audio) return;
+        this.audio = new Audio();
+        this.audio.volume = 0.4;
+        this.audio.crossOrigin = "anonymous";
+        this.audio.src = this.stations[this.currentStation].url;
+        this.audio.play().catch(() => {});
+        this.showStation();
+    },
+
+    play() {
+        if (!this.audio) this.init();
+        this.audio.play().catch(() => {});
+    },
+
+    toggleMute() {
+        if (!this.audio) return;
+        this.muted = !this.muted;
+        this.audio.muted = this.muted;
+        if (typeof Game !== "undefined") {
+            Game.addFloatingText(
+                this.muted ? "RADIO MUTED" : "RADIO UNMUTED",
+                512, 100, "#38bdf8"
+            );
+        }
+    },
+
+    nextStation() {
+        if (!this.audio) return;
+        this.currentStation = (this.currentStation + 1) % this.stations.length;
+        this.audio.src = this.stations[this.currentStation].url;
+        this.audio.play().catch(() => {});
+        this.showStation();
+
+        if (typeof Game !== "undefined") {
+            Game.addFloatingText(
+                this.stations[this.currentStation].name,
+                512, 130, "#a78bfa"
+            );
+        }
+    },
+
+    showStation() {
+        const obj = document.getElementById("objectiveText");
+        if (obj) {
+            obj.innerText = "Radio: " + this.stations[this.currentStation].name;
+        }
+    }
+};
+
+// --- AUDIO ENGINE ---
 const AudioEngine = {
     ctx: null,
-    init() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+
+    init() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            Radio.init();
+        }
+    },
+
     play(type) {
-        if(!this.ctx) return;
-        let osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        if (!this.ctx) return;
+
+        let osc = this.ctx.createOscillator();
+        let gain = this.ctx.createGain();
         let now = this.ctx.currentTime;
-        if (type === 'swing') {
-            osc.type = 'sine'; osc.frequency.setValueAtTime(380, now); osc.frequency.exponentialRampToValueAtTime(70, now + 0.12);
-            gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-            osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(now + 0.12);
-        } else if (type === 'hit') {
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(140, now); osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
-            gain.gain.setValueAtTime(0.35, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-            osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(now + 0.15);
-        } else if (type === 'spell') {
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(180, now); osc.frequency.exponentialRampToValueAtTime(550, now + 0.28);
-            gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
-            osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(now + 0.28);
-        } else if (type === 'parry') {
-            osc.type = 'square'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.18);
-            gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-            osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(now + 0.18);
-        } else if (type === 'pickup') {
-            osc.type = 'sine'; osc.frequency.setValueAtTime(523, now); osc.frequency.setValueAtTime(659, now + 0.08);
-            gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-            osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(now + 0.18);
+
+        if (type === "swing") {
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(380, now);
+            osc.frequency.exponentialRampToValueAtTime(70, now + 0.12);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(now + 0.12);
+        } else if (type === "hit") {
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(140, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(now + 0.15);
+        } else if (type === "spell") {
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(180, now);
+            osc.frequency.exponentialRampToValueAtTime(550, now + 0.28);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(now + 0.28);
+        } else if (type === "parry") {
+            osc.type = "square";
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.18);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(now + 0.18);
+        } else if (type === "pickup") {
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(523, now);
+            osc.frequency.setValueAtTime(659, now + 0.08);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(now + 0.18);
         }
     }
 };
@@ -332,25 +453,43 @@ document.getElementById("chatInput").addEventListener("keydown", (e) => {
     }
 });
 
-window.addEventListener("keydown", e => { 
-    if (document.activeElement === document.getElementById("joinCodeInput") || document.activeElement === document.getElementById("chatInput")) return;
+// FIX: Track mouse movements relative to scaled canvas
+window.addEventListener("mousemove", e => {
+    const rect = Canvas.getBoundingClientRect();
+    Mouse.x = (e.clientX - rect.left) * (Canvas.width / rect.width);
+    Mouse.y = (e.clientY - rect.top) * (Canvas.height / rect.height);
+});
+
+// FIX: Keyup handler to stop movement on key release
+window.addEventListener("keyup", e => {
+    Keys[e.key.toLowerCase()] = false;
+});
+
+window.addEventListener("keydown", e => {
+    if (
+        document.activeElement === document.getElementById("joinCodeInput") ||
+        document.activeElement === document.getElementById("chatInput")
+    ) return;
+
     AudioEngine.init();
-    Keys[e.key.toLowerCase()] = true; 
-    
+    Keys[e.key.toLowerCase()] = true;
+
+    // SOMAFM CONTROLS
+    if (e.key.toLowerCase() === "m") { Radio.toggleMute(); }
+    if (e.key.toLowerCase() === "n") { Radio.nextStation(); }
+
+    // TITLE SCREEN
     if (Game.state === "TITLE") {
-        if (e.key === "Enter" || e.key === " ") Game.startFromTitle();
+        if (e.key === "Enter" || e.key === " ") { Game.startFromTitle(); }
         return;
     }
 
-    if(e.key === " ") e.preventDefault();
-    if(e.key.toLowerCase() === 'u') Game.toggleForge();
-    if(e.key.toLowerCase() === 'r') Game.triggerRestart();
+    if (e.key === " ") { e.preventDefault(); }
+    if (e.key.toLowerCase() === "u") { Game.toggleForge(); }
+    if (e.key.toLowerCase() === "r") { Game.triggerRestart(); }
+    if (e.key === "Escape") { Game.closeForge(); }
 });
-window.addEventListener("keyup", e => { Keys[e.key.toLowerCase()] = false; });
-Canvas.addEventListener("mousemove", e => {
-    const rect = Canvas.getBoundingClientRect();
-    Mouse.x = e.clientX - rect.left; Mouse.y = e.clientY - rect.top;
-});
+
 Canvas.addEventListener("mousedown", e => { 
     if (document.activeElement === document.getElementById("joinCodeInput") || document.activeElement === document.getElementById("chatInput")) return;
     AudioEngine.init(); 
@@ -362,6 +501,29 @@ Canvas.addEventListener("mousedown", e => {
     if (e.button === 2) Game.triggerSpell(); 
 });
 Canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+// --- ENVIRONMENTAL PILLARS / OBSTACLES ---
+class Pillar {
+    constructor(x, y, radius = 28) {
+        this.x = x; this.y = y; this.radius = radius;
+    }
+    draw() {
+        Ctx.save();
+        Ctx.fillStyle = "#1e293b"; Ctx.strokeStyle = "#475569"; Ctx.lineWidth = 3;
+        Ctx.beginPath(); Ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); Ctx.fill(); Ctx.stroke();
+        Ctx.fillStyle = "#0f172a"; Ctx.beginPath(); Ctx.arc(this.x, this.y, this.radius * 0.6, 0, Math.PI * 2); Ctx.fill();
+        Ctx.restore();
+    }
+    resolveCollision(entity) {
+        let dist = Math.hypot(entity.x - this.x, entity.y - this.y);
+        let minDist = entity.radius + this.radius;
+        if (dist < minDist) {
+            let angle = Math.atan2(entity.y - this.y, entity.x - this.x);
+            entity.x = this.x + Math.cos(angle) * minDist;
+            entity.y = this.y + Math.sin(angle) * minDist;
+        }
+    }
+}
 
 // --- PARTICLE SYSTEM ---
 class Particle {
@@ -393,6 +555,13 @@ class EnemyProjectile {
         if (this.x < 0 || this.x > Canvas.width || this.y < 0 || this.y > Canvas.height) {
             this.active = false;
             return;
+        }
+
+        for (let p of Game.pillars) {
+            if (Math.hypot(this.x - p.x, this.y - p.y) < this.radius + p.radius) {
+                this.active = false;
+                return;
+            }
         }
 
         if (Math.hypot(this.x - player.x, this.y - player.y) < this.radius + player.radius) {
@@ -448,7 +617,8 @@ class LootDrop {
 // --- PLAYER CONTROLLER ---
 class Player {
     constructor(x, y, isPeer = false) {
-        this.x = x; this.y = y; this.radius = 16; this.baseSpeed = 3.8;
+        this.x = x; this.y = y; this.targetX = x; this.targetY = y;
+        this.radius = 16; this.baseSpeed = 3.8;
         this.hp = 100; this.maxHp = 100; this.stamina = 100; this.maxStamina = 100;
         this.mana = 100; this.maxMana = 100; this.souls = 0;
         
@@ -462,8 +632,9 @@ class Player {
         this.iFrames = false; this.isAttacking = false; this.attackTimer = 0;
         this.isParrying = false; this.parryTimer = 0;
         this.facingAngle = 0; this.attackBox = { x: 0, y: 0, radius: 0, damage: 0 };
-        
+
         this.animFrame = 0;
+        this.flashTimer = 0;
         this.isPeer = isPeer;
     }
 
@@ -480,7 +651,15 @@ class Player {
     }
 
     update() {
+        if (this.flashTimer > 0) this.flashTimer--;
         this.animFrame += 0.1;
+
+        if (this.isPeer) {
+            this.x += (this.targetX - this.x) * 0.25;
+            this.y += (this.targetY - this.y) * 0.25;
+            return;
+        }
+
         if (this.stamina < this.maxStamina && !this.isDodging) {
             this.stamina = Math.min(this.maxStamina, this.stamina + this.staminaRegenRate);
         }
@@ -518,6 +697,7 @@ class Player {
             this.x += (dx / len) * effectiveSpeed; this.y += (dy / len) * effectiveSpeed;
         }
 
+        for (let pillar of Game.pillars) pillar.resolveCollision(this);
         this.clampToBounds();
 
         if (Keys[' '] && !this.isDodging && this.stamina >= 30) {
@@ -557,6 +737,7 @@ class Player {
                 if (Math.hypot(enemy.x - this.x, enemy.y - this.y) < radius) {
                     if (Network.isHost) {
                         enemy.hp -= 65;
+                        enemy.flashTimer = 4;
                         Game.addFloatingText("-65 NOVA!", enemy.x, enemy.y - 15, "#60a5fa");
                     } else {
                         Network.sendDamage(index, 65, enemy === Game.boss);
@@ -577,7 +758,7 @@ class Player {
             Game.addFloatingText("PARRIED!", this.x, this.y - 25, "#38bdf8");
             
             if (attacker && Network.isHost) {
-                attacker.hp -= 40;
+                attacker.hp -= 40; attacker.flashTimer = 4;
                 let pushA = Math.atan2(attacker.y - this.y, attacker.x - this.x);
                 attacker.x += Math.cos(pushA) * 50; attacker.y += Math.sin(pushA) * 50;
             }
@@ -585,6 +766,7 @@ class Player {
         }
 
         this.hp = Math.max(0, this.hp - amount);
+        this.flashTimer = 4;
         AudioEngine.play('hit'); Game.hitStop = 4; Game.addScreenShake(8);
         if (this.hp <= 0) Game.state = "GAMEOVER";
     }
@@ -600,7 +782,7 @@ class Player {
         Ctx.fillStyle = "#3b0764"; Ctx.beginPath();
         Ctx.moveTo(-10, -12); Ctx.lineTo(-24 - Math.sin(this.animFrame)*3, 0); Ctx.lineTo(-10, 12); Ctx.closePath(); Ctx.fill();
 
-        Ctx.fillStyle = this.iFrames ? "#e2e8f0" : (this.isPeer ? "#be185d" : "#581c87");
+        Ctx.fillStyle = this.flashTimer > 0 ? "#ffffff" : (this.iFrames ? "#e2e8f0" : (this.isPeer ? "#be185d" : "#581c87"));
         Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = this.isParrying ? "#38bdf8" : (this.isPeer ? "#f472b6" : "#c4b5fd"); Ctx.lineWidth = 2.5; Ctx.stroke();
 
@@ -642,12 +824,16 @@ class BerserkerEnemy {
         this.speed = 1.8 + Math.min(levelMultiplier * 0.2, 1.8);
         this.damage = Math.floor(10 * levelMultiplier);
         this.animFrame = Math.random() * 10;
+        this.flashTimer = 0;
     }
     update(player) {
+        if (this.flashTimer > 0) this.flashTimer--;
         this.animFrame += 0.1;
         let target = (Game.remotePlayer && Math.hypot(Game.remotePlayer.x - this.x, Game.remotePlayer.y - this.y) < Math.hypot(player.x - this.x, player.y - this.y)) ? Game.remotePlayer : player;
         let a = Math.atan2(target.y - this.y, target.x - this.x);
         this.x += Math.cos(a) * this.speed; this.y += Math.sin(a) * this.speed;
+        
+        for (let p of Game.pillars) p.resolveCollision(this);
         this.x = Math.max(this.radius, Math.min(Canvas.width - this.radius, this.x));
         this.y = Math.max(this.radius, Math.min(Canvas.height - this.radius, this.y));
 
@@ -661,7 +847,7 @@ class BerserkerEnemy {
         Ctx.fillStyle = "#78350f";
         Ctx.beginPath(); Ctx.moveTo(0, -16); Ctx.lineTo(14, -26); Ctx.lineTo(6, -12); Ctx.fill();
         Ctx.beginPath(); Ctx.moveTo(0, 16); Ctx.lineTo(14, 26); Ctx.lineTo(6, 12); Ctx.fill();
-        Ctx.fillStyle = "#991b1b"; Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
+        Ctx.fillStyle = this.flashTimer > 0 ? "#ffffff" : "#991b1b"; Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = "#451a03"; Ctx.lineWidth = 3; Ctx.stroke();
         Ctx.fillStyle = "#fef08a"; Ctx.shadowColor = "#ef4444"; Ctx.shadowBlur = 8;
         Ctx.beginPath(); Ctx.arc(8, -6, 3, 0, Math.PI * 2); Ctx.arc(8, 6, 3, 0, Math.PI * 2); Ctx.fill();
@@ -680,12 +866,16 @@ class PhantomEnemy {
         this.speed = 2.9 + Math.min(levelMultiplier * 0.15, 1.5);
         this.damage = Math.floor(8 * levelMultiplier);
         this.animFrame = Math.random() * 10;
+        this.flashTimer = 0;
     }
     update(player) {
+        if (this.flashTimer > 0) this.flashTimer--;
         this.animFrame += 0.15;
         let target = (Game.remotePlayer && Math.hypot(Game.remotePlayer.x - this.x, Game.remotePlayer.y - this.y) < Math.hypot(player.x - this.x, player.y - this.y)) ? Game.remotePlayer : player;
         let a = Math.atan2(target.y - this.y, target.x - this.x);
         this.x += Math.cos(a) * this.speed; this.y += Math.sin(a) * this.speed;
+        
+        for (let p of Game.pillars) p.resolveCollision(this);
         this.x = Math.max(this.radius, Math.min(Canvas.width - this.radius, this.x));
         this.y = Math.max(this.radius, Math.min(Canvas.height - this.radius, this.y));
 
@@ -698,7 +888,7 @@ class PhantomEnemy {
         Ctx.save(); Ctx.translate(this.x, this.y); Ctx.rotate(angle);
         Ctx.fillStyle = "rgba(56, 189, 248, 0.35)";
         Ctx.beginPath(); Ctx.moveTo(0, -12); Ctx.lineTo(-26 - Math.sin(this.animFrame)*6, 0); Ctx.lineTo(0, 12); Ctx.fill();
-        Ctx.fillStyle = "rgba(14, 165, 233, 0.75)";
+        Ctx.fillStyle = this.flashTimer > 0 ? "#ffffff" : "rgba(14, 165, 233, 0.75)";
         Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = "#bae6fd"; Ctx.lineWidth = 2; Ctx.stroke();
         Ctx.fillStyle = "#ffffff"; Ctx.shadowColor = "#38bdf8"; Ctx.shadowBlur = 10;
@@ -709,7 +899,7 @@ class PhantomEnemy {
     }
 }
 
-// --- RANGED ---
+// --- RANGED (WITH TELEGRAPH WARNING LINE) ---
 class RangedEnemy {
     constructor(x, y, levelMultiplier) {
         this.x = x; this.y = y; this.radius = 16;
@@ -720,8 +910,10 @@ class RangedEnemy {
         this.shootCooldown = 110;
         this.timer = Math.floor(Math.random() * 50);
         this.animFrame = Math.random() * 10;
+        this.flashTimer = 0;
     }
     update(player) {
+        if (this.flashTimer > 0) this.flashTimer--;
         this.animFrame += 0.08;
         let target = (Game.remotePlayer && Math.hypot(Game.remotePlayer.x - this.x, Game.remotePlayer.y - this.y) < Math.hypot(player.x - this.x, player.y - this.y)) ? Game.remotePlayer : player;
         let dist = Math.hypot(target.x - this.x, target.y - this.y);
@@ -729,6 +921,7 @@ class RangedEnemy {
         if (dist < 190) { this.x -= Math.cos(a) * this.speed; this.y -= Math.sin(a) * this.speed; } 
         else if (dist > 290) { this.x += Math.cos(a) * this.speed; this.y += Math.sin(a) * this.speed; }
 
+        for (let p of Game.pillars) p.resolveCollision(this);
         this.x = Math.max(this.radius, Math.min(Canvas.width - this.radius, this.x));
         this.y = Math.max(this.radius, Math.min(Canvas.height - this.radius, this.y));
 
@@ -739,7 +932,21 @@ class RangedEnemy {
         }
     }
     draw() {
-        let angle = Math.atan2(Game.player.y - this.y, Game.player.x - this.x);
+        let target = (Game.remotePlayer && Math.hypot(Game.remotePlayer.x - this.x, Game.remotePlayer.y - this.y) < Math.hypot(Game.player.x - this.x, Game.player.y - this.y)) ? Game.remotePlayer : Game.player;
+        let angle = Math.atan2(target.y - this.y, target.x - this.x);
+
+        if (this.timer > this.shootCooldown - 30) {
+            Ctx.save();
+            Ctx.strokeStyle = "rgba(245, 158, 11, 0.4)";
+            Ctx.lineWidth = 1.5;
+            Ctx.setLineDash([6, 6]);
+            Ctx.beginPath();
+            Ctx.moveTo(this.x, this.y);
+            Ctx.lineTo(this.x + Math.cos(angle) * 350, this.y + Math.sin(angle) * 350);
+            Ctx.stroke();
+            Ctx.restore();
+        }
+
         Ctx.save(); Ctx.translate(this.x, this.y);
         for(let i=0; i<3; i++) {
             let orbitA = this.animFrame + (Math.PI * 2 / 3) * i;
@@ -747,7 +954,7 @@ class RangedEnemy {
             Ctx.fillStyle = "#fbbf24"; Ctx.beginPath(); Ctx.arc(ox, oy, 3, 0, Math.PI * 2); Ctx.fill();
         }
         Ctx.rotate(angle);
-        Ctx.fillStyle = "#d97706"; Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
+        Ctx.fillStyle = this.flashTimer > 0 ? "#ffffff" : "#d97706"; Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = "#fef08a"; Ctx.lineWidth = 2; Ctx.stroke();
         Ctx.fillStyle = "#f59e0b"; Ctx.fillRect(8, -8, 6, 16);
         Ctx.fillStyle = "#ffffff"; Ctx.shadowColor = "#f59e0b"; Ctx.shadowBlur = 8;
@@ -769,14 +976,17 @@ class CasterEnemy {
         this.shootCooldown = 150;
         this.timer = Math.floor(Math.random() * 60);
         this.animFrame = Math.random() * 10;
+        this.flashTimer = 0;
     }
     update(player) {
+        if (this.flashTimer > 0) this.flashTimer--;
         this.animFrame += 0.05;
         let target = (Game.remotePlayer && Math.hypot(Game.remotePlayer.x - this.x, Game.remotePlayer.y - this.y) < Math.hypot(player.x - this.x, player.y - this.y)) ? Game.remotePlayer : player;
         let a = Math.atan2(target.y - this.y, target.x - this.x);
         let dist = Math.hypot(target.x - this.x, target.y - this.y);
         if (dist > 220) { this.x += Math.cos(a) * this.speed; this.y += Math.sin(a) * this.speed; }
 
+        for (let p of Game.pillars) p.resolveCollision(this);
         this.x = Math.max(this.radius, Math.min(Canvas.width - this.radius, this.x));
         this.y = Math.max(this.radius, Math.min(Canvas.height - this.radius, this.y));
 
@@ -796,7 +1006,7 @@ class CasterEnemy {
         Ctx.strokeStyle = "rgba(192, 132, 252, 0.6)"; Ctx.lineWidth = 1.5;
         Ctx.strokeRect(-22, -22, 44, 44);
         Ctx.restore();
-        Ctx.fillStyle = "#581c87"; Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
+        Ctx.fillStyle = this.flashTimer > 0 ? "#ffffff" : "#581c87"; Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = "#e9d5ff"; Ctx.lineWidth = 2; Ctx.stroke();
         Ctx.fillStyle = "#c084fc"; Ctx.shadowColor = "#c084fc"; Ctx.shadowBlur = 10;
         Ctx.beginPath(); Ctx.arc(-4, -2, 3, 0, Math.PI * 2); Ctx.arc(4, -2, 3, 0, Math.PI * 2); Ctx.fill();
@@ -819,9 +1029,11 @@ class WardenBoss {
         this.spinAngle = 0;
         this.shootTimer = 0;
         this.summonTimer = 0;
+        this.flashTimer = 0;
     }
 
     update(player) {
+        if (this.flashTimer > 0) this.flashTimer--;
         if (this.hp <= (this.maxHp / 2) && this.phase === 1) {
             this.phase = 2; Game.addScreenShake(15);
             for(let i=0; i<20; i++) Game.particles.push(new Particle(this.x, this.y, (Math.random()-0.5)*8, (Math.random()-0.5)*8, "#ef4444", 6, 40));
@@ -831,6 +1043,8 @@ class WardenBoss {
         let a = Math.atan2(target.y - this.y, target.x - this.x);
         let speed = (this.phase === 1 ? 0.7 : 1.3) + (this.levelMultiplier * 0.08);
         this.x += Math.cos(a) * speed; this.y += Math.sin(a) * speed;
+
+        for (let p of Game.pillars) p.resolveCollision(this);
         this.x = Math.max(this.radius, Math.min(Canvas.width - this.radius, this.x));
         this.y = Math.max(this.radius, Math.min(Canvas.height - this.radius, this.y));
 
@@ -879,7 +1093,7 @@ class WardenBoss {
             Ctx.beginPath(); Ctx.moveTo(Math.cos(a)*42, Math.sin(a)*42); Ctx.lineTo(Math.cos(a)*56, Math.sin(a)*56); Ctx.stroke();
         }
         Ctx.restore();
-        Ctx.fillStyle = this.phase === 2 ? "#7f1d1d" : "#3b0764";
+        Ctx.fillStyle = this.flashTimer > 0 ? "#ffffff" : (this.phase === 2 ? "#7f1d1d" : "#3b0764");
         Ctx.beginPath(); Ctx.arc(0, 0, this.radius, 0, Math.PI * 2); Ctx.fill();
         Ctx.strokeStyle = this.phase === 2 ? "#fca5a5" : "#e9d5ff"; Ctx.lineWidth = 4; Ctx.stroke();
         Ctx.fillStyle = "#38bdf8"; Ctx.shadowColor = Ctx.fillStyle; Ctx.shadowBlur = 12;
@@ -905,7 +1119,7 @@ class Portal {
 
 // --- MAIN GAME ENGINE ---
 const Game = {
-    player: null, remotePlayer: null, boss: null, enemies: [], projectiles: [], particles: [], loot: [], floatingTexts: [], portal: null,
+    player: null, remotePlayer: null, boss: null, enemies: [], projectiles: [], particles: [], loot: [], pillars: [], floatingTexts: [], portal: null,
     currentRoom: 1, screenShake: 0, hitStop: 0, state: "TITLE", dialogueIndex: 0, titlePulse: 0,
     loadingProgress: 0, loadingTargetState: "PLAYING", loadingTargetRoom: 1, loadingMessage: "Summoning Phantom Vessel...",
 
@@ -956,9 +1170,12 @@ const Game = {
     },
 
     loadRoom(roomNum) {
-        this.currentRoom = roomNum; this.enemies = []; this.projectiles = []; this.boss = null; this.portal = null;
+        this.currentRoom = roomNum; this.enemies = []; this.projectiles = []; this.boss = null; this.portal = null; this.pillars = [];
         this.player.x = 180; this.player.y = 288;
         let levelMultiplier = 1 + (roomNum - 1) * 0.25;
+
+        this.pillars.push(new Pillar(380, 180));
+        this.pillars.push(new Pillar(380, 396));
 
         if (Network.isHost) {
             if (roomNum % 5 === 0) {
@@ -983,7 +1200,6 @@ const Game = {
     syncFromHost(data) {
         this.currentRoom = data.room;
         
-        // Re-align enemy array size and positions
         while (this.enemies.length < data.enemies.length) {
             let eData = data.enemies[this.enemies.length];
             let newE;
@@ -1145,6 +1361,7 @@ const Game = {
         if (this.hitStop > 0) { this.hitStop--; return; }
 
         this.player.update();
+        if (this.remotePlayer) this.remotePlayer.update();
         Network.sendState();
         
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -1159,6 +1376,7 @@ const Game = {
             if (this.player.isAttacking && Math.hypot(this.player.attackBox.x - e.x, this.player.attackBox.y - e.y) < this.player.attackBox.radius + e.radius) {
                 if (Network.isHost) {
                     e.hp -= this.player.attackBox.damage; AudioEngine.play('hit');
+                    e.flashTimer = 4;
                     this.addFloatingText(`-${this.player.attackBox.damage}`, e.x, e.y - 15, "#fbbf24");
                 } else {
                     Network.sendDamage(i, this.player.attackBox.damage, false);
@@ -1177,6 +1395,7 @@ const Game = {
             if (this.player.isAttacking && Math.hypot(this.player.attackBox.x - this.boss.x, this.player.attackBox.y - this.boss.y) < this.player.attackBox.radius + this.boss.radius) {
                 if (Network.isHost) {
                     this.boss.hp -= this.player.attackBox.damage; AudioEngine.play('hit');
+                    this.boss.flashTimer = 4;
                     this.addFloatingText(`-${this.player.attackBox.damage}`, this.boss.x, this.boss.y - 20, "#fbbf24");
                 } else {
                     Network.sendDamage(0, this.player.attackBox.damage, true);
@@ -1270,6 +1489,7 @@ const Game = {
         }
 
         if (this.portal) this.portal.draw();
+        this.pillars.forEach(p => p.draw());
         this.loot.forEach(l => l.draw(Ctx));
         this.projectiles.forEach(p => p.draw(Ctx));
         this.enemies.forEach(e => e.draw());
