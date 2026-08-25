@@ -1,50 +1,275 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome - Entry Portal</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #090d16;
-      color: #e2e8f0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
+<script>
+  let memory = { name: null, facts: {} };
+  let chatHistory = [];
+  let voiceEnabled = false;
+  let isListening = false;
+  let recognition = null;
+
+  let gameState = { active: false, target: 0, attempts: 0 };
+
+  // Setup Speech Recognition
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.onresult = (e) => {
+      document.getElementById('userInput').value = e.results[0][0].transcript;
+      toggleMic();
+      sendMessage();
+    };
+    recognition.onerror = () => toggleMic();
+  }
+
+  // Load Memory safely
+  try {
+    const saved = localStorage.getItem('kris_super_ai_v10');
+    if (saved) memory = JSON.parse(saved);
+  } catch (e) {}
+
+  function updateUIState() {
+    const totalItems = Object.keys(memory.facts || {}).length + (memory.name ? 1 : 0);
+    document.getElementById('memCount').innerText = `Memory: ${totalItems} item${totalItems === 1 ? '' : 's'}`;
+  }
+
+  function saveMemory() {
+    try { localStorage.setItem('kris_super_ai_v10', JSON.stringify(memory)); } catch (e) {}
+    updateUIState();
+  }
+
+  function toggleVoice() {
+    voiceEnabled = !voiceEnabled;
+    document.getElementById('speechBtn').innerText = voiceEnabled ? "🔊 Voice: On" : "🔇 Voice: Off";
+  }
+
+  function toggleMic() {
+    if (!recognition) return alert('Speech recognition not supported in browser.');
+    isListening = !isListening;
+    const micBtn = document.getElementById('micBtn');
+    if (isListening) {
+      micBtn.style.background = '#ef4444';
+      recognition.start();
+    } else {
+      micBtn.style.background = 'rgba(255,255,255,0.08)';
+      recognition.stop();
     }
-    .card {
-      background: #1e293b;
-      padding: 40px;
-      border-radius: 20px;
-      text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-      border: 1px solid rgba(255,255,255,0.08);
-      max-width: 360px;
-      width: 100%;
+  }
+
+  function speak(text) {
+    if (!voiceEnabled || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const cleanText = text.replace(/<[^>]*>?/gm, '');
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(cleanText));
+    } catch(e) {}
+  }
+
+  function resetMemory() {
+    memory = { name: null, facts: {} };
+    chatHistory = [];
+    gameState.active = false;
+    try { localStorage.removeItem('kris_super_ai_v10'); } catch(e){}
+    updateUIState();
+    document.getElementById("chatBox").innerHTML = '<div class="message bot"><b>Memory Cleared!</b> How can I help you?</div>';
+  }
+
+  function quickPrompt(text) {
+    document.getElementById('userInput').value = text;
+    sendMessage();
+  }
+
+  function formatMarkdown(text) {
+    return text
+      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+      .replace(/\*(.*?)\*/g, '<i>$1</i>')
+      .replace(/\n/g, '<br>');
+  }
+
+  // --- Handlers ---
+
+  function handleGameEngine(raw) {
+    const clean = raw.toLowerCase().trim();
+    if (gameState.active) {
+      const num = parseInt(clean, 10);
+      if (!isNaN(num)) {
+        gameState.attempts++;
+        if (num === gameState.target) {
+          gameState.active = false;
+          return `🎉 <b>Correct!</b> You guessed the secret number (<b>${gameState.target}</b>) in <b>${gameState.attempts}</b> attempt(s)!`;
+        }
+        return num < gameState.target 
+          ? `📈 Higher! (Attempt #${gameState.attempts}). Guess again:` 
+          : `📉 Lower! (Attempt #${gameState.attempts}). Guess again:`;
+      }
+      if (clean.includes("quit") || clean.includes("stop")) {
+        gameState.active = false;
+        return `Game ended! The secret number was <b>${gameState.target}</b>.`;
+      }
     }
-    h1 { font-size: 24px; color: #f8fafc; margin-bottom: 12px; }
-    p { font-size: 14px; color: #94a3b8; margin-bottom: 24px; }
-    .btn {
-      display: inline-block;
-      padding: 12px 28px;
-      background: #38bdf8;
-      color: #0f172a;
-      text-decoration: none;
-      font-weight: 600;
-      border-radius: 24px;
-      transition: background 0.2s;
+    if (clean.includes("play guess") || clean.includes("number game")) {
+      gameState.active = true;
+      gameState.target = Math.floor(Math.random() * 100) + 1;
+      gameState.attempts = 0;
+      return `🎮 <b>Number Guessing Game Started!</b><br>I have picked a secret number between 1 and 100. Type your guess below:`;
     }
-    .btn:hover { background: #7dd3fc; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Welcome Portal</h1>
-    <p>Beat the challenge game to unlock the Kris 5.7 AI system.</p>
-    <a href="games.html" class="btn">Play Game →</a>
-  </div>
-</body>
-</html>
+    return null;
+  }
+
+  function handleMemoryStore(raw) {
+    const clean = raw.toLowerCase().trim();
+    const nameMatch = raw.match(/(?:my name is|call me|i am) ([a-zA-Z]+)/i);
+    if (nameMatch && !clean.includes("who") && !clean.includes("what")) {
+      memory.name = nameMatch[1];
+      saveMemory();
+      return `Nice to meet you, <b>${memory.name}</b>! Saved to RAM.`;
+    }
+    const kvMatch = raw.match(/(?:remember|save|note)(?:\s+that)?\s+(?:my\s+)?(.+?)\s+(?:is|are|=)\s+(.+)/i);
+    if (kvMatch) {
+      memory.facts[kvMatch[1].trim().toLowerCase()] = kvMatch[2].trim();
+      saveMemory();
+      return `Saved to RAM: <b>${kvMatch[1].trim()}</b> ➔ <b>${kvMatch[2].trim()}</b>`;
+    }
+    if (clean.includes("what is my name") || clean.includes("who am i")) {
+      return memory.name ? `Your name is <b>${memory.name}</b>!` : "I don't know your name yet. Tell me using 'My name is [Name]'!";
+    }
+    return null;
+  }
+
+  function handleMath(rawQuery) {
+    let expr = rawQuery.toLowerCase()
+      .replace(/\b(what|is|whats|calculate|solve|eval|evaluate|how|much|does|equal|to)\b/gi, '')
+      .replace(/plus/g, '+').replace(/minus/g, '-').replace(/times|x/g, '*').replace(/divided by|over/g, '/')
+      .trim();
+    
+    if (/^[0-9\+\-\*\/\%\(\)\.\^\s]+$/.test(expr) && /[0-9]/.test(expr)) {
+      try {
+        const val = Function(`'use strict'; return (${expr.replace(/\^/g, '**')})`)();
+        if (val !== undefined && !isNaN(val)) return `🧮 Result: <b>${val}</b>`;
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  async function fetchWeather(rawQuery) {
+    const clean = rawQuery.toLowerCase();
+    if (!/\b(weather|temperature|temp|forecast)\b/i.test(clean)) return null;
+    let targetCity = clean.match(/(?:in|for|at|near)\s+([a-zA-Z\s,]+)/i)?.[1]?.trim() || "";
+
+    try {
+      let lat, lon, name = "your location";
+      if (targetCity) {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(targetCity)}&count=1&language=en&format=json`);
+        const geoData = await geoRes.json();
+        if (geoData.results?.length) {
+          lat = geoData.results[0].latitude; lon = geoData.results[0].longitude; name = geoData.results[0].name;
+        } else {
+            return `☁️ I couldn't find the city "${targetCity}".`;
+        }
+      } else {
+        const ipData = await (await fetch('https://get.geojs.io/v1/ip/geo.json')).json();
+        lat = ipData.latitude; lon = ipData.longitude; name = ipData.city || name;
+      }
+      const wData = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)).json();
+      return `Weather for <b>${name}</b>:<br>🌡️ <b>${(wData.current_weather.temperature * 9/5 + 32).toFixed(1)}°F</b> (${wData.current_weather.temperature}°C)<br>💨 Wind: <b>${wData.current_weather.windspeed} km/h</b>`;
+    } catch(e) { return "🌩️ Couldn't fetch weather right now."; }
+  }
+
+  async function generateResponse(raw) {
+    const input = raw.trim();
+
+    // Local overrides
+    const localRes = handleMemoryStore(input) || handleGameEngine(input) || handleMath(input);
+    if (localRes) return localRes;
+
+    // Images
+    const imgMatch = input.match(/^(?:generate|draw|create|paint|show\s+me|make|render)\s+(?:an?\s+)?(?:image|picture|photo|art)?\s*(?:of)?\s*(.+)$/i);
+    if (imgMatch) {
+      return `🎨 Here is your image for <b>"${imgMatch[1].trim()}"</b>:<br><img src="https://image.pollinations.ai/prompt/${encodeURIComponent(imgMatch[1].trim())}?width=512&height=512&nologo=true" alt="${imgMatch[1]}">`;
+    }
+
+    // Weather
+    const weather = await fetchWeather(input);
+    if (weather) return weather;
+
+    // External AI API Call
+    try {
+      chatHistory.push(`User: ${input}`);
+      if (chatHistory.length > 6) chatHistory = chatHistory.slice(chatHistory.length - 6);
+      
+      const promptString = chatHistory.join('\n') + '\nKris:';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      
+      const res = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptString)}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.trim()) {
+            chatHistory.push(`Kris: ${text.trim()}`);
+            return formatMarkdown(text.trim());
+        }
+      }
+    } catch(e) {}
+
+    return `⚠️ <b>Network Fallback:</b> Couldn't connect to external AI servers. Try local commands like <code>play guess game</code> or <code>5 + 12</code>!`;
+  }
+
+  // --- UI Execution ---
+
+  function showTypingIndicator() {
+    hideTypingIndicator();
+    const chatBox = document.getElementById("chatBox");
+    const msg = document.createElement("div");
+    msg.className = "message bot typing-indicator";
+    msg.id = "typingBubble";
+    msg.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+    chatBox.appendChild(msg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function hideTypingIndicator() {
+    const typingMsg = document.getElementById("typingBubble");
+    if (typingMsg) typingMsg.remove();
+  }
+
+  function appendBotMessage(html) {
+    const chatBox = document.getElementById("chatBox");
+    const msg = document.createElement("div");
+    msg.className = "message bot";
+    msg.innerHTML = html;
+    chatBox.appendChild(msg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById("userInput");
+    const chatBox = document.getElementById("chatBox");
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Render User Message
+    const userMsg = document.createElement("div");
+    userMsg.className = "message user";
+    userMsg.innerText = text;
+    chatBox.appendChild(userMsg);
+
+    input.value = "";
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    showTypingIndicator();
+
+    try {
+      let response = await generateResponse(text);
+      hideTypingIndicator();
+      appendBotMessage(response);
+      speak(response);
+    } catch (err) {
+      console.error("Message Error:", err);
+      hideTypingIndicator();
+      appendBotMessage("⚠️ <b>An error occurred while processing your message.</b>");
+    }
+  }
+
+  updateUIState();
+</script>
