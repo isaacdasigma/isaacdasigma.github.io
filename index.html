@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Lightweight Standalone Engine</title>
+  <title>Kris AI 14.1 - Ultra-Fast Standalone Engine</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -165,7 +165,7 @@
         </svg>
       </div>
       <div class="header-info">
-        <h4>Kris AI 14.1 (High Speed)</h4>
+        <h4>Kris AI 14.1 (Ultra-Fast)</h4>
         <p id="engineStatus">● Initializing Local Engine...</p>
       </div>
     </div>
@@ -181,7 +181,7 @@
   </div>
 
   <div class="status-bar">
-    <span id="modelInfo">Model: Qwen1.5-0.5B-Chat (WebGPU / INT4 Quantized)</span>
+    <span id="modelInfo">Model: SmolLM-135M-Instruct (WebGPU Streamed)</span>
     <span id="memCount">Memory: 0 turns</span>
   </div>
 
@@ -194,7 +194,7 @@
 </div>
 
 <script type="module">
-  import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+  import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
   env.allowLocalModels = false;
   let generator = null;
@@ -213,7 +213,7 @@
 
   function saveMemory(role, content) {
     conversationHistory.push({ role, content });
-    if (conversationHistory.length > 16) conversationHistory.shift();
+    if (conversationHistory.length > 8) conversationHistory.shift();
     localStorage.setItem('kris_standalone_history', JSON.stringify(conversationHistory));
     updateMemoryUI();
   }
@@ -235,20 +235,20 @@
     const progressBar = document.getElementById('progressBar');
 
     try {
-      // Primary execution path: WebGPU hardware acceleration + 4-bit quantization
-      generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
+      // Fast SmolLM-135M model (~80MB footprint for ultra-fast load times)
+      generator = await pipeline('text-generation', 'Xenova/SmolLM-135M-Instruct', {
         device: 'webgpu',
         dtype: 'q4',
         progress_callback: (data) => {
           if (data.status === 'progress') {
             const pct = Math.round(data.progress || 0);
             progressBar.style.width = `${pct}%`;
-            statusText.textContent = `● Loading Weights (${pct}%)...`;
+            statusText.textContent = `● Downloading Engine (${pct}%)...`;
           }
         }
       });
 
-      statusText.textContent = '● Engine Ready (WebGPU Accelerated)';
+      statusText.textContent = '● Engine Ready (WebGPU Ultra)';
       progressBar.style.width = '100%';
 
       document.getElementById('userInput').disabled = false;
@@ -257,10 +257,9 @@
       
       loadMemory();
     } catch (err) {
-      console.warn("WebGPU initialization failed. Falling back to WASM/CPU execution.", err);
+      console.warn("WebGPU initialization failed. Falling back to WASM execution.", err);
       try {
-        // Fallback execution path: WASM CPU execution using 4-bit weights
-        generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
+        generator = await pipeline('text-generation', 'Xenova/SmolLM-135M-Instruct', {
           dtype: 'q4'
         });
         statusText.textContent = '● Engine Ready (WASM Fallback)';
@@ -272,8 +271,7 @@
       } catch (fallbackErr) {
         statusText.textContent = '⚠️ Engine Load Failed';
         statusText.style.color = 'var(--error)';
-        appendBotMessage(`<b>Error loading engine:</b> ${fallbackErr.message}<br><br>Make sure you are running the app through a local HTTP server instead of double-clicking the file.`);
-        console.error(fallbackErr);
+        appendBotMessage(`<b>Error loading engine:</b> ${fallbackErr.message}`);
       }
     }
   }
@@ -281,28 +279,40 @@
   async function generateResponse(promptText) {
     saveMemory("user", promptText);
 
-    // Limit active prompt history to last 4 turns for near-instant prefill performance
-    const activeContext = conversationHistory.slice(-4);
-
-    let chatPrompt = `<|im_start|>system\nYou are Kris AI, a direct and friendly local assistant.<|im_end|>\n`;
+    // Context limit restricted to last 2 turns to minimize prefill computation
+    const activeContext = conversationHistory.slice(-2);
+    let chatPrompt = "";
     activeContext.forEach(m => {
       chatPrompt += `<|im_start|>${m.role === 'user' ? 'user' : 'assistant'}\n${m.content}<|im_end|>\n`;
     });
     chatPrompt += `<|im_start|>assistant\n`;
 
-    // Fast greedy generation parameters
-    const output = await generator(chatPrompt, {
-      max_new_tokens: 80,
+    const chatBox = document.getElementById("chatBox");
+    const msg = document.createElement("div");
+    msg.className = "message bot";
+    chatBox.appendChild(msg);
+
+    let fullReply = "";
+
+    // Stream output directly into UI as tokens generate
+    const streamer = new TextStreamer(generator.tokenizer, {
+      skip_prompt: true,
+      skip_special_tokens: true,
+      callback_function: (text) => {
+        fullReply += text;
+        msg.textContent = fullReply;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    });
+
+    await generator(chatPrompt, {
+      max_new_tokens: 60,
       do_sample: false,
-      repetition_penalty: 1.1,
+      streamer: streamer,
       stop: ["<|im_end|>", "<|endoftext|>"]
     });
 
-    let rawText = output[0].generated_text;
-    let response = rawText.substring(rawText.lastIndexOf('<|im_start|>assistant\n') + 21).replace('<|im_end|>', '').trim();
-    
-    saveMemory("assistant", response);
-    return response;
+    saveMemory("assistant", fullReply.trim());
   }
 
   function appendUserMessage(text) {
@@ -326,7 +336,7 @@
   function renderHistoryToDOM() {
     document.getElementById("chatBox").innerHTML = '';
     if (conversationHistory.length === 0) {
-      appendBotMessage("<b>Welcome to Kris AI 14.1 👋</b><br>I am fully running in your browser memory with WebGPU acceleration. No API keys or remote servers required!");
+      appendBotMessage("<b>Welcome to Kris AI 14.1 ⚡</b><br>I am running ultra-fast SmolLM-135M directly in your browser memory.");
       return;
     }
     conversationHistory.forEach(m => {
@@ -348,8 +358,7 @@
     sendBtn.disabled = true;
 
     try {
-      const reply = await generateResponse(text);
-      appendBotMessage(reply);
+      await generateResponse(text);
     } catch (e) {
       appendBotMessage("⚠️ Error processing request locally.");
     } finally {
