@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Featherweight Edition</title>
+  <title>Kris AI 14.1 - Turbo Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -11,13 +11,11 @@
       --panel: #151d2a;
       --header: #0f172a;
       --accent: #38bdf8;
-      --accent-glow: rgba(56, 189, 248, 0.35);
       --text: #f8fafc;
       --subtext: #94a3b8;
       --user-msg: #0284c7;
       --bot-msg: #243144;
       --border: rgba(255, 255, 255, 0.1);
-      --error: #f87171;
     }
 
     body {
@@ -55,45 +53,19 @@
       border-bottom: 1px solid var(--border);
     }
 
-    .header-left { display: flex; align-items: center; gap: 12px; }
-
-    .avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      background: var(--header);
-      border: 1px solid var(--accent);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 16px var(--accent-glow);
-    }
-
     .header-info h4 { margin: 0; font-size: 15px; color: var(--text); }
     .header-info p { margin: 2px 0 0; font-size: 11px; color: var(--accent); }
-
-    .status-bar {
-      background: var(--header);
-      padding: 8px 16px;
-      font-size: 11px;
-      color: var(--subtext);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
 
     .progress-container {
       width: 100%;
       background: rgba(255,255,255,0.05);
       height: 4px;
-      position: relative;
     }
     .progress-bar {
       width: 0%;
       height: 100%;
       background: var(--accent);
-      transition: width 0.3s;
+      transition: width 0.2s;
     }
 
     .chat-box {
@@ -103,7 +75,6 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
-      scroll-behavior: smooth;
     }
 
     .message {
@@ -119,19 +90,7 @@
     .user { align-self: flex-end; background: var(--user-msg); color: #fff; border-bottom-right-radius: 4px; }
     .bot { align-self: flex-start; background: var(--bot-msg); color: var(--text); border-bottom-left-radius: 4px; }
 
-    .debug-console {
-      background: #090d16;
-      border-top: 1px solid var(--border);
-      color: #38bdf8;
-      font-family: monospace;
-      font-size: 11px;
-      padding: 8px 12px;
-      max-height: 70px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-    }
-
-    .input-area { display: flex; padding: 12px 14px; background: var(--header); gap: 8px; align-items: center; }
+    .input-area { display: flex; padding: 12px 14px; background: var(--header); gap: 8px; }
     
     input[type="text"] {
       flex: 1;
@@ -160,234 +119,138 @@
 
 <div class="chat-container">
   <div class="chat-header">
-    <div class="header-left">
-      <div class="avatar">
-        <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
-          <path d="M28 20 V80 M28 50 L70 20 M38 42 L72 80" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="header-info">
-        <h4>Kris AI 14.1 (Standalone)</h4>
-        <p id="engineStatus">● Booting Light Engine...</p>
-      </div>
+    <div class="header-info">
+      <h4>Kris AI 14.1 (Viewer Ready)</h4>
+      <p id="engineStatus">● Initializing...</p>
     </div>
-    <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearMemory()">🧹 Clear</button>
+    <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearChat()">🧹 Clear</button>
   </div>
 
   <div class="progress-container">
     <div class="progress-bar" id="progressBar"></div>
   </div>
 
-  <div class="status-bar">
-    <span id="modelInfo">Model: SmolLM2-135M-Instruct (Ultra Lightweight)</span>
-    <span id="memCount">Memory: 0 turns</span>
-  </div>
-
   <div class="chat-box" id="chatBox"></div>
-  
-  <div class="debug-console" id="debugConsole">SYSTEM LOGS: Initializing script...</div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Loading model..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Loading engine..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
     <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
   </div>
 </div>
 
 <script type="module">
-  function logDebug(msg) {
-    const consoleBox = document.getElementById('debugConsole');
-    if (consoleBox) {
-      consoleBox.textContent += `\n> ${msg}`;
-      consoleBox.scrollTop = consoleBox.scrollHeight;
-    }
-    console.log(`[KrisAI] ${msg}`);
+  import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers';
+
+  env.allowLocalModels = false;
+  env.useBrowserCache = true;
+  if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
+    env.backends.onnx.wasm.numThreads = 1;
   }
 
-  window.addEventListener('error', (e) => {
-    logDebug(`Global Error: ${e.message}`);
-  });
+  let generator = null;
+  let activeBotMsg = null;
 
-  try {
-    logDebug("Importing @huggingface/transformers engine...");
-    const { pipeline, env, TextStreamer } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
-    
-    env.allowLocalModels = false;
-    
-    if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
-      env.backends.onnx.wasm.numThreads = 1;
+  function updateStatus(text, progress = 0) {
+    document.getElementById('engineStatus').textContent = text;
+    if (progress > 0) {
+      document.getElementById('progressBar').style.width = `${progress}%`;
     }
+  }
 
-    let generator = null;
-    let conversationHistory = [];
+  function appendBotMessage(text) {
+    const chatBox = document.getElementById("chatBox");
+    const msg = document.createElement("div");
+    msg.className = "message bot";
+    msg.innerHTML = DOMPurify.sanitize(text);
+    chatBox.appendChild(msg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
 
-    function loadMemory() {
-      const stored = localStorage.getItem('kris_standalone_history');
-      conversationHistory = stored ? JSON.parse(stored) : [];
-      updateMemoryUI();
-      renderHistoryToDOM();
-    }
+  window.clearChat = function() {
+    document.getElementById("chatBox").innerHTML = '';
+    appendBotMessage("Chat cleared! Ask me a question.");
+  };
 
-    function saveMemory(role, content) {
-      conversationHistory.push({ role, content });
-      if (conversationHistory.length > 8) conversationHistory.shift();
-      localStorage.setItem('kris_standalone_history', JSON.stringify(conversationHistory));
-      updateMemoryUI();
-    }
+  async function initEngine() {
+    const device = !!navigator.gpu ? 'webgpu' : 'wasm';
+    updateStatus(`● Downloading Model (${device.toUpperCase()})...`, 10);
 
-    window.clearMemory = function() {
-      conversationHistory = [];
-      localStorage.removeItem('kris_standalone_history');
-      document.getElementById('chatBox').innerHTML = '';
-      updateMemoryUI();
-      appendBotMessage("Memory reset! Ask me anything—I'm running locally in your browser.");
-    };
-
-    function updateMemoryUI() {
-      document.getElementById('memCount').textContent = `Memory: ${conversationHistory.length} turns`;
-    }
-
-    async function initLocalAI() {
-      const statusText = document.getElementById('engineStatus');
-      const progressBar = document.getElementById('progressBar');
-
-      const supportsWebGPU = !!navigator.gpu;
-      const deviceOption = supportsWebGPU ? 'webgpu' : 'wasm';
-      logDebug(`Selected Hardware Backend: ${deviceOption.toUpperCase()}`);
-
-      try {
-        statusText.textContent = `● Downloading Light Weights (${deviceOption.toUpperCase()})...`;
-
-        // Ultra-light 135M model to ensure zero computer freeze/lag
-        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct', {
-          device: deviceOption,
-          dtype: 'q4',
-          progress_callback: (data) => {
-            if (data.status === 'progress') {
-              const pct = Math.round(data.progress || 0);
-              progressBar.style.width = `${pct}%`;
-              statusText.textContent = `● Downloading (${pct}%)...`;
-            } else if (data.status === 'done') {
-              logDebug(`Loaded: ${data.file || 'weights'}`);
-            }
+    try {
+      generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
+        device: device,
+        dtype: 'q4',
+        progress_callback: (p) => {
+          if (p.status === 'progress') {
+            updateStatus(`● Loading Weights (${Math.round(p.progress || 0)}%)...`, Math.round(p.progress || 0));
           }
-        });
-
-        statusText.textContent = `● Engine Ready (${deviceOption.toUpperCase()})`;
-        progressBar.style.width = '100%';
-        logDebug("Light model loaded into memory!");
-
-        document.getElementById('userInput').disabled = false;
-        document.getElementById('sendBtn').disabled = false;
-        document.getElementById('userInput').placeholder = 'Type a message...';
-        
-        loadMemory();
-      } catch (err) {
-        logDebug(`Engine Error: ${err.message}`);
-        statusText.textContent = '⚠️ Engine Load Failed';
-        statusText.style.color = 'var(--error)';
-        appendBotMessage(`<b>Initialization Error:</b> ${err.message}<br><br>Check the debug console below.`);
-      }
-    }
-
-    async function generateResponse(promptText) {
-      saveMemory("user", promptText);
-
-      const activeContext = conversationHistory.slice(-4);
-      let chatPrompt = `<|im_start|>system\nYou are Kris AI, a helpful local assistant.<|im_end|>\n`;
-      activeContext.forEach(m => {
-        chatPrompt += `<|im_start|>${m.role === 'user' ? 'user' : 'assistant'}\n${m.content}<|im_end|>\n`;
-      });
-      chatPrompt += `<|im_start|>assistant\n`;
-
-      const chatBox = document.getElementById("chatBox");
-      const msg = document.createElement("div");
-      msg.className = "message bot";
-      chatBox.appendChild(msg);
-
-      let fullReply = "";
-
-      const streamer = new TextStreamer(generator.tokenizer, {
-        skip_prompt: true,
-        skip_special_tokens: true,
-        callback_function: (text) => {
-          fullReply += text;
-          msg.textContent = fullReply;
-          chatBox.scrollTop = chatBox.scrollHeight;
         }
       });
 
-      // Sampling settings configured to stop text repeating loops while keeping CPU load tiny
-      await generator(chatPrompt, {
-        max_new_tokens: 100,
+      updateStatus(`● Ready (${device.toUpperCase()})`, 100);
+      document.getElementById('userInput').disabled = false;
+      document.getElementById('sendBtn').disabled = false;
+      document.getElementById('userInput').placeholder = 'Type a message...';
+      appendBotMessage("<b>Engine Ready!</b><br>Updated for fast, accurate responses and complete lists.");
+    } catch (err) {
+      updateStatus(`⚠️ Engine Error`);
+      appendBotMessage(`<b>Failed to load model:</b> ${err.message}`);
+    }
+  }
+
+  window.sendMessage = async function() {
+    const input = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const text = input.value.trim();
+
+    if (!text || !generator) return;
+
+    const chatBox = document.getElementById("chatBox");
+    const userMsg = document.createElement("div");
+    userMsg.className = "message user";
+    userMsg.textContent = text;
+    chatBox.appendChild(userMsg);
+
+    input.value = "";
+    input.disabled = true;
+    sendBtn.disabled = true;
+
+    activeBotMsg = document.createElement("div");
+    activeBotMsg.className = "message bot";
+    chatBox.appendChild(activeBotMsg);
+
+    let responseText = "";
+    const prompt = `<|im_start|>system\nYou are a factual, concise assistant. Provide short, accurate lists without inventing information.<|im_end|>\n<|im_start|>user\n${text}<|im_end|>\n<|im_start|>assistant\n`;
+
+    const streamer = new TextStreamer(generator.tokenizer, {
+      skip_prompt: true,
+      skip_special_tokens: true,
+      callback_function: (chunk) => {
+        responseText += chunk;
+        activeBotMsg.textContent = responseText;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    });
+
+    try {
+      await generator(prompt, {
+        max_new_tokens: 250,
         do_sample: true,
-        temperature: 0.6,
-        top_k: 40,
+        temperature: 0.2,
+        top_k: 20,
         repetition_penalty: 1.2,
         streamer: streamer,
         stop: ["<|im_end|>", "<|endoftext|>"]
       });
-
-      saveMemory("assistant", fullReply.trim());
+    } catch (e) {
+      activeBotMsg.textContent = "⚠️ Error generating response.";
+    } finally {
+      input.disabled = false;
+      sendBtn.disabled = false;
+      input.focus();
     }
+  };
 
-    function appendUserMessage(text) {
-      const chatBox = document.getElementById("chatBox");
-      const msg = document.createElement("div");
-      msg.className = "message user";
-      msg.textContent = text;
-      chatBox.appendChild(msg);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function appendBotMessage(text) {
-      const chatBox = document.getElementById("chatBox");
-      const msg = document.createElement("div");
-      msg.className = "message bot";
-      msg.innerHTML = DOMPurify.sanitize(text);
-      chatBox.appendChild(msg);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function renderHistoryToDOM() {
-      document.getElementById("chatBox").innerHTML = '';
-      if (conversationHistory.length === 0) {
-        appendBotMessage("<b>Welcome to Kris AI 14.1 ⚡</b><br>I am fully running in your browser memory!");
-        return;
-      }
-      conversationHistory.forEach(m => {
-        if (m.role === 'user') appendUserMessage(m.content);
-        if (m.role === 'assistant') appendBotMessage(m.content);
-      });
-    }
-
-    window.sendMessage = async function() {
-      const input = document.getElementById("userInput");
-      const sendBtn = document.getElementById("sendBtn");
-      const text = input.value.trim();
-
-      if (!text || !generator) return;
-
-      appendUserMessage(text);
-      input.value = "";
-      input.disabled = true;
-      sendBtn.disabled = true;
-
-      try {
-        await generateResponse(text);
-      } catch (e) {
-        logDebug(`Generation Error: ${e.message}`);
-        appendBotMessage("⚠️ Error processing request locally.");
-      } finally {
-        input.disabled = false;
-        sendBtn.disabled = false;
-        input.focus();
-      }
-    };
-
-    initLocalAI();
-  } catch (importErr) {
-    logDebug(`Module Import Failed: ${importErr.message}`);
-  }
+  initEngine();
 </script>
 </body>
 </html>
