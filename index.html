@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Ultra-Fast Standalone Engine</title>
+  <title>Kris AI 14.1 - Lightweight Standalone Engine</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -165,7 +165,7 @@
         </svg>
       </div>
       <div class="header-info">
-        <h4>Kris AI 14.1 (Ultra-Fast)</h4>
+        <h4>Kris AI 14.1 (Standalone)</h4>
         <p id="engineStatus">● Initializing Local Engine...</p>
       </div>
     </div>
@@ -181,7 +181,7 @@
   </div>
 
   <div class="status-bar">
-    <span id="modelInfo">Model: SmolLM-135M-Instruct (WebGPU Streamed)</span>
+    <span id="modelInfo">Model: SmolLM2-135M-Instruct (Quantized ONNX)</span>
     <span id="memCount">Memory: 0 turns</span>
   </div>
 
@@ -194,7 +194,7 @@
 </div>
 
 <script type="module">
-  import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+  import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
 
   env.allowLocalModels = false;
   let generator = null;
@@ -235,20 +235,20 @@
     const progressBar = document.getElementById('progressBar');
 
     try {
-      // Fast SmolLM-135M model (~80MB footprint for ultra-fast load times)
-      generator = await pipeline('text-generation', 'Xenova/SmolLM-135M-Instruct', {
+      // Primary attempt: WebGPU hardware acceleration using valid HuggingFace model path
+      generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct', {
         device: 'webgpu',
         dtype: 'q4',
         progress_callback: (data) => {
           if (data.status === 'progress') {
-            const pct = Math.round(data.progress || 0);
+            const pct = Math.round((data.loaded / data.total) * 100) || Math.round(data.progress || 0);
             progressBar.style.width = `${pct}%`;
-            statusText.textContent = `● Downloading Engine (${pct}%)...`;
+            statusText.textContent = `● Loading Model (${pct}%)...`;
           }
         }
       });
 
-      statusText.textContent = '● Engine Ready (WebGPU Ultra)';
+      statusText.textContent = '● Engine Ready (WebGPU Acceleration)';
       progressBar.style.width = '100%';
 
       document.getElementById('userInput').disabled = false;
@@ -257,10 +257,18 @@
       
       loadMemory();
     } catch (err) {
-      console.warn("WebGPU initialization failed. Falling back to WASM execution.", err);
+      console.warn("WebGPU initialization failed. Falling back to WASM/CPU.", err);
       try {
-        generator = await pipeline('text-generation', 'Xenova/SmolLM-135M-Instruct', {
-          dtype: 'q4'
+        // Fallback attempt: Standard WASM execution
+        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct', {
+          dtype: 'q4',
+          progress_callback: (data) => {
+            if (data.status === 'progress') {
+              const pct = Math.round((data.loaded / data.total) * 100) || Math.round(data.progress || 0);
+              progressBar.style.width = `${pct}%`;
+              statusText.textContent = `● Loading Model (${pct}%)...`;
+            }
+          }
         });
         statusText.textContent = '● Engine Ready (WASM Fallback)';
         progressBar.style.width = '100%';
@@ -271,7 +279,8 @@
       } catch (fallbackErr) {
         statusText.textContent = '⚠️ Engine Load Failed';
         statusText.style.color = 'var(--error)';
-        appendBotMessage(`<b>Error loading engine:</b> ${fallbackErr.message}`);
+        appendBotMessage(`<b>Error loading engine:</b> ${fallbackErr.message}<br><br>Make sure you run this file through a local HTTP server (Live Server or <code>npx serve</code>).`);
+        console.error(fallbackErr);
       }
     }
   }
@@ -279,8 +288,7 @@
   async function generateResponse(promptText) {
     saveMemory("user", promptText);
 
-    // Context limit restricted to last 2 turns to minimize prefill computation
-    const activeContext = conversationHistory.slice(-2);
+    const activeContext = conversationHistory.slice(-4);
     let chatPrompt = "";
     activeContext.forEach(m => {
       chatPrompt += `<|im_start|>${m.role === 'user' ? 'user' : 'assistant'}\n${m.content}<|im_end|>\n`;
@@ -294,7 +302,6 @@
 
     let fullReply = "";
 
-    // Stream output directly into UI as tokens generate
     const streamer = new TextStreamer(generator.tokenizer, {
       skip_prompt: true,
       skip_special_tokens: true,
@@ -306,7 +313,7 @@
     });
 
     await generator(chatPrompt, {
-      max_new_tokens: 60,
+      max_new_tokens: 80,
       do_sample: false,
       streamer: streamer,
       stop: ["<|im_end|>", "<|endoftext|>"]
@@ -336,7 +343,7 @@
   function renderHistoryToDOM() {
     document.getElementById("chatBox").innerHTML = '';
     if (conversationHistory.length === 0) {
-      appendBotMessage("<b>Welcome to Kris AI 14.1 ⚡</b><br>I am running ultra-fast SmolLM-135M directly in your browser memory.");
+      appendBotMessage("<b>Welcome to Kris AI 14.1 ⚡</b><br>I am fully running in your browser memory. No API keys or remote servers required!");
       return;
     }
     conversationHistory.forEach(m => {
