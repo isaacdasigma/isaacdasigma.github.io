@@ -179,7 +179,7 @@
   </div>
 
   <div class="status-bar">
-    <span id="modelInfo">Model: SmolLM2-135M-ONNX</span>
+    <span id="modelInfo">Model: Qwen2.5-0.5B-Instruct</span>
     <span id="memCount">Memory: 0 turns</span>
   </div>
 
@@ -213,7 +213,6 @@
     
     env.allowLocalModels = false;
     
-    // Crucial for GitHub Pages: Disable multi-threaded WASM to avoid SharedArrayBuffer COOP/COEP block
     if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
       env.backends.onnx.wasm.numThreads = 1;
     }
@@ -256,10 +255,9 @@
       logDebug(`Selected Hardware Backend: ${deviceOption.toUpperCase()}`);
 
       try {
-        statusText.textContent = `● Downloading SmolLM2 (${deviceOption.toUpperCase()})...`;
+        statusText.textContent = `● Downloading Qwen2.5 (${deviceOption.toUpperCase()})...`;
 
-        // Valid public repo with tokenizer.json
-        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-ONNX', {
+        generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
           device: deviceOption,
           dtype: 'q4',
           progress_callback: (data) => {
@@ -294,7 +292,7 @@
       saveMemory("user", promptText);
 
       const activeContext = conversationHistory.slice(-4);
-      let chatPrompt = `<|im_start|>system\nYou are Kris AI, a direct local assistant.<|im_end|>\n`;
+      let chatPrompt = `<|im_start|>system\nYou are Kris AI, a helpful, direct local assistant.<|im_end|>\n`;
       activeContext.forEach(m => {
         chatPrompt += `<|im_start|>${m.role === 'user' ? 'user' : 'assistant'}\n${m.content}<|im_end|>\n`;
       });
@@ -317,9 +315,13 @@
         }
       });
 
+      // Added sampling parameters & repetition penalty to stop text looping
       await generator(chatPrompt, {
-        max_new_tokens: 120,
-        do_sample: false,
+        max_new_tokens: 200,
+        do_sample: true,
+        temperature: 0.7,
+        top_k: 40,
+        repetition_penalty: 1.25,
         streamer: streamer,
         stop: ["<|im_end|>", "<|endoftext|>"]
       });
