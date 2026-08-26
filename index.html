@@ -165,7 +165,7 @@
         </svg>
       </div>
       <div class="header-info">
-        <h4>Kris AI 14.1 (Standalone)</h4>
+        <h4>Kris AI 14.1 (High Speed)</h4>
         <p id="engineStatus">● Initializing Local Engine...</p>
       </div>
     </div>
@@ -181,7 +181,7 @@
   </div>
 
   <div class="status-bar">
-    <span id="modelInfo">Model: Qwen1.5-0.5B-Chat (Lightweight ONNX)</span>
+    <span id="modelInfo">Model: Qwen1.5-0.5B-Chat (WebGPU / INT4 Quantized)</span>
     <span id="memCount">Memory: 0 turns</span>
   </div>
 
@@ -200,7 +200,6 @@
   let generator = null;
   let conversationHistory = [];
 
-  // Check protocol to alert user about file:// limitations
   if (window.location.protocol === 'file:') {
     document.getElementById('fileWarning').style.display = 'block';
   }
@@ -236,8 +235,10 @@
     const progressBar = document.getElementById('progressBar');
 
     try {
-      // Switched to low-overhead 0.5B chat model (~300MB)
+      // Primary execution path: WebGPU hardware acceleration + 4-bit quantization
       generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
+        device: 'webgpu',
+        dtype: 'q4',
         progress_callback: (data) => {
           if (data.status === 'progress') {
             const pct = Math.round(data.progress || 0);
@@ -247,7 +248,7 @@
         }
       });
 
-      statusText.textContent = '● Engine Ready (On-Device)';
+      statusText.textContent = '● Engine Ready (WebGPU Accelerated)';
       progressBar.style.width = '100%';
 
       document.getElementById('userInput').disabled = false;
@@ -256,27 +257,44 @@
       
       loadMemory();
     } catch (err) {
-      statusText.textContent = '⚠️ Engine Load Failed';
-      statusText.style.color = 'var(--error)';
-      appendBotMessage(`<b>Error loading engine:</b> ${err.message}<br><br>Make sure you are running the app through a local HTTP server instead of double-clicking the file.`);
-      console.error(err);
+      console.warn("WebGPU initialization failed. Falling back to WASM/CPU execution.", err);
+      try {
+        // Fallback execution path: WASM CPU execution using 4-bit weights
+        generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
+          dtype: 'q4'
+        });
+        statusText.textContent = '● Engine Ready (WASM Fallback)';
+        progressBar.style.width = '100%';
+        document.getElementById('userInput').disabled = false;
+        document.getElementById('sendBtn').disabled = false;
+        document.getElementById('userInput').placeholder = 'Type a message...';
+        loadMemory();
+      } catch (fallbackErr) {
+        statusText.textContent = '⚠️ Engine Load Failed';
+        statusText.style.color = 'var(--error)';
+        appendBotMessage(`<b>Error loading engine:</b> ${fallbackErr.message}<br><br>Make sure you are running the app through a local HTTP server instead of double-clicking the file.`);
+        console.error(fallbackErr);
+      }
     }
   }
 
   async function generateResponse(promptText) {
     saveMemory("user", promptText);
 
-    // Format prompt using standard ChatML format
+    // Limit active prompt history to last 4 turns for near-instant prefill performance
+    const activeContext = conversationHistory.slice(-4);
+
     let chatPrompt = `<|im_start|>system\nYou are Kris AI, a direct and friendly local assistant.<|im_end|>\n`;
-    conversationHistory.forEach(m => {
+    activeContext.forEach(m => {
       chatPrompt += `<|im_start|>${m.role === 'user' ? 'user' : 'assistant'}\n${m.content}<|im_end|>\n`;
     });
     chatPrompt += `<|im_start|>assistant\n`;
 
+    // Fast greedy generation parameters
     const output = await generator(chatPrompt, {
-      max_new_tokens: 100,
-      temperature: 0.6,
-      repetition_penalty: 1.15,
+      max_new_tokens: 80,
+      do_sample: false,
+      repetition_penalty: 1.1,
       stop: ["<|im_end|>", "<|endoftext|>"]
     });
 
@@ -308,7 +326,7 @@
   function renderHistoryToDOM() {
     document.getElementById("chatBox").innerHTML = '';
     if (conversationHistory.length === 0) {
-      appendBotMessage("<b>Welcome to Kris AI 14.1 👋</b><br>I am fully running in your browser memory. No API keys or remote servers required!");
+      appendBotMessage("<b>Welcome to Kris AI 14.1 👋</b><br>I am fully running in your browser memory with WebGPU acceleration. No API keys or remote servers required!");
       return;
     }
     conversationHistory.forEach(m => {
