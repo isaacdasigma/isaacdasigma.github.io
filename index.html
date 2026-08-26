@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - GitHub Pages Edition</title>
+  <title>Kris AI 14.1 - Featherweight Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -168,7 +168,7 @@
       </div>
       <div class="header-info">
         <h4>Kris AI 14.1 (Standalone)</h4>
-        <p id="engineStatus">● Booting Engine...</p>
+        <p id="engineStatus">● Booting Light Engine...</p>
       </div>
     </div>
     <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearMemory()">🧹 Clear</button>
@@ -179,7 +179,7 @@
   </div>
 
   <div class="status-bar">
-    <span id="modelInfo">Model: Qwen2.5-0.5B-Instruct</span>
+    <span id="modelInfo">Model: SmolLM2-135M-Instruct (Ultra Lightweight)</span>
     <span id="memCount">Memory: 0 turns</span>
   </div>
 
@@ -255,9 +255,10 @@
       logDebug(`Selected Hardware Backend: ${deviceOption.toUpperCase()}`);
 
       try {
-        statusText.textContent = `● Downloading Qwen2.5 (${deviceOption.toUpperCase()})...`;
+        statusText.textContent = `● Downloading Light Weights (${deviceOption.toUpperCase()})...`;
 
-        generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
+        // Ultra-light 135M model to ensure zero computer freeze/lag
+        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct', {
           device: deviceOption,
           dtype: 'q4',
           progress_callback: (data) => {
@@ -273,7 +274,7 @@
 
         statusText.textContent = `● Engine Ready (${deviceOption.toUpperCase()})`;
         progressBar.style.width = '100%';
-        logDebug("Model loaded successfully into memory!");
+        logDebug("Light model loaded into memory!");
 
         document.getElementById('userInput').disabled = false;
         document.getElementById('sendBtn').disabled = false;
@@ -292,7 +293,7 @@
       saveMemory("user", promptText);
 
       const activeContext = conversationHistory.slice(-4);
-      let chatPrompt = `<|im_start|>system\nYou are Kris AI, a helpful, direct local assistant.<|im_end|>\n`;
+      let chatPrompt = `<|im_start|>system\nYou are Kris AI, a helpful local assistant.<|im_end|>\n`;
       activeContext.forEach(m => {
         chatPrompt += `<|im_start|>${m.role === 'user' ? 'user' : 'assistant'}\n${m.content}<|im_end|>\n`;
       });
@@ -315,13 +316,13 @@
         }
       });
 
-      // Added sampling parameters & repetition penalty to stop text looping
+      // Sampling settings configured to stop text repeating loops while keeping CPU load tiny
       await generator(chatPrompt, {
-        max_new_tokens: 200,
+        max_new_tokens: 100,
         do_sample: true,
-        temperature: 0.7,
+        temperature: 0.6,
         top_k: 40,
-        repetition_penalty: 1.25,
+        repetition_penalty: 1.2,
         streamer: streamer,
         stop: ["<|im_end|>", "<|endoftext|>"]
       });
