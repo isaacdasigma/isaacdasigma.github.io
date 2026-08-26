@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Lightweight Standalone Engine</title>
+  <title>Kris AI 14.1 - Fast Standalone Engine</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -181,7 +181,7 @@
   </div>
 
   <div class="status-bar">
-    <span id="modelInfo">Model: SmolLM2-135M-Instruct (Quantized ONNX)</span>
+    <span id="modelInfo">Model: Qwen1.5-0.5B-Chat (WebGPU Quantized)</span>
     <span id="memCount">Memory: 0 turns</span>
   </div>
 
@@ -194,7 +194,7 @@
 </div>
 
 <script type="module">
-  import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+  import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
   env.allowLocalModels = false;
   let generator = null;
@@ -235,13 +235,13 @@
     const progressBar = document.getElementById('progressBar');
 
     try {
-      // Primary attempt: WebGPU hardware acceleration using valid HuggingFace model path
-      generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct', {
+      // Load public Xenova repo with WebGPU acceleration and 4-bit quantization
+      generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
         device: 'webgpu',
         dtype: 'q4',
         progress_callback: (data) => {
           if (data.status === 'progress') {
-            const pct = Math.round((data.loaded / data.total) * 100) || Math.round(data.progress || 0);
+            const pct = Math.round(data.progress || 0);
             progressBar.style.width = `${pct}%`;
             statusText.textContent = `● Loading Model (${pct}%)...`;
           }
@@ -259,12 +259,11 @@
     } catch (err) {
       console.warn("WebGPU initialization failed. Falling back to WASM/CPU.", err);
       try {
-        // Fallback attempt: Standard WASM execution
-        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct', {
+        generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
           dtype: 'q4',
           progress_callback: (data) => {
             if (data.status === 'progress') {
-              const pct = Math.round((data.loaded / data.total) * 100) || Math.round(data.progress || 0);
+              const pct = Math.round(data.progress || 0);
               progressBar.style.width = `${pct}%`;
               statusText.textContent = `● Loading Model (${pct}%)...`;
             }
@@ -279,7 +278,7 @@
       } catch (fallbackErr) {
         statusText.textContent = '⚠️ Engine Load Failed';
         statusText.style.color = 'var(--error)';
-        appendBotMessage(`<b>Error loading engine:</b> ${fallbackErr.message}<br><br>Make sure you run this file through a local HTTP server (Live Server or <code>npx serve</code>).`);
+        appendBotMessage(`<b>Error loading engine:</b> ${fallbackErr.message}<br><br>Make sure you run this file through a local HTTP server (e.g. VS Code <b>Live Server</b> or <code>npx serve</code>).`);
         console.error(fallbackErr);
       }
     }
@@ -289,7 +288,7 @@
     saveMemory("user", promptText);
 
     const activeContext = conversationHistory.slice(-4);
-    let chatPrompt = "";
+    let chatPrompt = `<|im_start|>system\nYou are Kris AI, a direct and friendly local assistant.<|im_end|>\n`;
     activeContext.forEach(m => {
       chatPrompt += `<|im_start|>${m.role === 'user' ? 'user' : 'assistant'}\n${m.content}<|im_end|>\n`;
     });
@@ -302,6 +301,7 @@
 
     let fullReply = "";
 
+    // Stream text live token-by-token into the DOM
     const streamer = new TextStreamer(generator.tokenizer, {
       skip_prompt: true,
       skip_special_tokens: true,
