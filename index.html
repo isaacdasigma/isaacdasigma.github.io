@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Ultra-Fast Local Engine</title>
+  <title>Kris AI 14.1 - GitHub Pages Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -168,7 +168,7 @@
       </div>
       <div class="header-info">
         <h4>Kris AI 14.1 (Standalone)</h4>
-        <p id="engineStatus">● Booting Modern Engine...</p>
+        <p id="engineStatus">● Booting Engine...</p>
       </div>
     </div>
     <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearMemory()">🧹 Clear</button>
@@ -179,16 +179,16 @@
   </div>
 
   <div class="status-bar">
-    <span id="modelInfo">Model: SmolLM2-135M-Instruct (INT4 Browser ONNX)</span>
+    <span id="modelInfo">Model: SmolLM2-135M-ONNX</span>
     <span id="memCount">Memory: 0 turns</span>
   </div>
 
   <div class="chat-box" id="chatBox"></div>
   
-  <div class="debug-console" id="debugConsole">SYSTEM LOGS: Initializing script module...</div>
+  <div class="debug-console" id="debugConsole">SYSTEM LOGS: Initializing script...</div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Loading local model..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Loading model..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
     <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
   </div>
 </div>
@@ -196,8 +196,10 @@
 <script type="module">
   function logDebug(msg) {
     const consoleBox = document.getElementById('debugConsole');
-    consoleBox.textContent += `\n> ${msg}`;
-    consoleBox.scrollTop = consoleBox.scrollHeight;
+    if (consoleBox) {
+      consoleBox.textContent += `\n> ${msg}`;
+      consoleBox.scrollTop = consoleBox.scrollHeight;
+    }
     console.log(`[KrisAI] ${msg}`);
   }
 
@@ -210,16 +212,14 @@
     const { pipeline, env, TextStreamer } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers');
     
     env.allowLocalModels = false;
-    if (env.backends?.onnx?.wasm) {
+    
+    // Crucial for GitHub Pages: Disable multi-threaded WASM to avoid SharedArrayBuffer COOP/COEP block
+    if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
       env.backends.onnx.wasm.numThreads = 1;
     }
 
     let generator = null;
     let conversationHistory = [];
-
-    if (window.location.protocol === 'file:') {
-      logDebug("WARNING: File protocol detected. Use VS Code Live Server or 'npx serve' if CORS blocks fetch.");
-    }
 
     function loadMemory() {
       const stored = localStorage.getItem('kris_standalone_history');
@@ -240,7 +240,7 @@
       localStorage.removeItem('kris_standalone_history');
       document.getElementById('chatBox').innerHTML = '';
       updateMemoryUI();
-      appendBotMessage("Memory reset! Ask me anything—I'm running 100% locally in your browser.");
+      appendBotMessage("Memory reset! Ask me anything—I'm running locally in your browser.");
     };
 
     function updateMemoryUI() {
@@ -256,25 +256,26 @@
       logDebug(`Selected Hardware Backend: ${deviceOption.toUpperCase()}`);
 
       try {
-        statusText.textContent = `● Loading SmolLM2 (${deviceOption.toUpperCase()})...`;
+        statusText.textContent = `● Downloading SmolLM2 (${deviceOption.toUpperCase()})...`;
 
-        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct', {
+        // Valid public repo with tokenizer.json
+        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-ONNX', {
           device: deviceOption,
           dtype: 'q4',
           progress_callback: (data) => {
             if (data.status === 'progress') {
               const pct = Math.round(data.progress || 0);
               progressBar.style.width = `${pct}%`;
-              statusText.textContent = `● Downloading Model (${pct}%)...`;
+              statusText.textContent = `● Downloading (${pct}%)...`;
             } else if (data.status === 'done') {
-              logDebug(`Loaded component: ${data.file || 'weights'}`);
+              logDebug(`Loaded: ${data.file || 'weights'}`);
             }
           }
         });
 
         statusText.textContent = `● Engine Ready (${deviceOption.toUpperCase()})`;
         progressBar.style.width = '100%';
-        logDebug("Model successfully loaded into memory!");
+        logDebug("Model loaded successfully into memory!");
 
         document.getElementById('userInput').disabled = false;
         document.getElementById('sendBtn').disabled = false;
@@ -285,7 +286,7 @@
         logDebug(`Engine Error: ${err.message}`);
         statusText.textContent = '⚠️ Engine Load Failed';
         statusText.style.color = 'var(--error)';
-        appendBotMessage(`<b>Initialization Error:</b> ${err.message}<br><br>Check the debug console box below for details.`);
+        appendBotMessage(`<b>Initialization Error:</b> ${err.message}<br><br>Check the debug console below.`);
       }
     }
 
@@ -293,7 +294,7 @@
       saveMemory("user", promptText);
 
       const activeContext = conversationHistory.slice(-4);
-      let chatPrompt = `<|im_start|>system\nYou are Kris AI, a direct and helpful local browser assistant.<|im_end|>\n`;
+      let chatPrompt = `<|im_start|>system\nYou are Kris AI, a direct local assistant.<|im_end|>\n`;
       activeContext.forEach(m => {
         chatPrompt += `<|im_start|>${m.role === 'user' ? 'user' : 'assistant'}\n${m.content}<|im_end|>\n`;
       });
@@ -347,7 +348,7 @@
     function renderHistoryToDOM() {
       document.getElementById("chatBox").innerHTML = '';
       if (conversationHistory.length === 0) {
-        appendBotMessage("<b>Welcome to Kris AI 14.1 ⚡</b><br>I am fully running in your browser memory. No API keys required!");
+        appendBotMessage("<b>Welcome to Kris AI 14.1 ⚡</b><br>I am fully running in your browser memory!");
         return;
       }
       conversationHistory.forEach(m => {
