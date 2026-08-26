@@ -1,275 +1,347 @@
-<script>
-  let memory = { name: null, facts: {} };
-  let chatHistory = [];
-  let voiceEnabled = false;
-  let isListening = false;
-  let recognition = null;
-
-  let gameState = { active: false, target: 0, attempts: 0 };
-
-  // Setup Speech Recognition
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
-    recognition.onresult = (e) => {
-      document.getElementById('userInput').value = e.results[0][0].transcript;
-      toggleMic();
-      sendMessage();
-    };
-    recognition.onerror = () => toggleMic();
-  }
-
-  // Load Memory safely
-  try {
-    const saved = localStorage.getItem('kris_super_ai_v10');
-    if (saved) memory = JSON.parse(saved);
-  } catch (e) {}
-
-  function updateUIState() {
-    const totalItems = Object.keys(memory.facts || {}).length + (memory.name ? 1 : 0);
-    document.getElementById('memCount').innerText = `Memory: ${totalItems} item${totalItems === 1 ? '' : 's'}`;
-  }
-
-  function saveMemory() {
-    try { localStorage.setItem('kris_super_ai_v10', JSON.stringify(memory)); } catch (e) {}
-    updateUIState();
-  }
-
-  function toggleVoice() {
-    voiceEnabled = !voiceEnabled;
-    document.getElementById('speechBtn').innerText = voiceEnabled ? "🔊 Voice: On" : "🔇 Voice: Off";
-  }
-
-  function toggleMic() {
-    if (!recognition) return alert('Speech recognition not supported in browser.');
-    isListening = !isListening;
-    const micBtn = document.getElementById('micBtn');
-    if (isListening) {
-      micBtn.style.background = '#ef4444';
-      recognition.start();
-    } else {
-      micBtn.style.background = 'rgba(255,255,255,0.08)';
-      recognition.stop();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kris AI 14.1 - Lightweight Standalone Engine</title>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel: #151d2a;
+      --header: #0f172a;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.35);
+      --text: #f8fafc;
+      --subtext: #94a3b8;
+      --user-msg: #0284c7;
+      --bot-msg: #243144;
+      --border: rgba(255, 255, 255, 0.1);
+      --error: #f87171;
     }
-  }
 
-  function speak(text) {
-    if (!voiceEnabled || !('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const cleanText = text.replace(/<[^>]*>?/gm, '');
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance(cleanText));
-    } catch(e) {}
-  }
-
-  function resetMemory() {
-    memory = { name: null, facts: {} };
-    chatHistory = [];
-    gameState.active = false;
-    try { localStorage.removeItem('kris_super_ai_v10'); } catch(e){}
-    updateUIState();
-    document.getElementById("chatBox").innerHTML = '<div class="message bot"><b>Memory Cleared!</b> How can I help you?</div>';
-  }
-
-  function quickPrompt(text) {
-    document.getElementById('userInput').value = text;
-    sendMessage();
-  }
-
-  function formatMarkdown(text) {
-    return text
-      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-      .replace(/\*(.*?)\*/g, '<i>$1</i>')
-      .replace(/\n/g, '<br>');
-  }
-
-  // --- Handlers ---
-
-  function handleGameEngine(raw) {
-    const clean = raw.toLowerCase().trim();
-    if (gameState.active) {
-      const num = parseInt(clean, 10);
-      if (!isNaN(num)) {
-        gameState.attempts++;
-        if (num === gameState.target) {
-          gameState.active = false;
-          return `🎉 <b>Correct!</b> You guessed the secret number (<b>${gameState.target}</b>) in <b>${gameState.attempts}</b> attempt(s)!`;
-        }
-        return num < gameState.target 
-          ? `📈 Higher! (Attempt #${gameState.attempts}). Guess again:` 
-          : `📉 Lower! (Attempt #${gameState.attempts}). Guess again:`;
-      }
-      if (clean.includes("quit") || clean.includes("stop")) {
-        gameState.active = false;
-        return `Game ended! The secret number was <b>${gameState.target}</b>.`;
-      }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 10px;
+      box-sizing: border-box;
     }
-    if (clean.includes("play guess") || clean.includes("number game")) {
-      gameState.active = true;
-      gameState.target = Math.floor(Math.random() * 100) + 1;
-      gameState.attempts = 0;
-      return `🎮 <b>Number Guessing Game Started!</b><br>I have picked a secret number between 1 and 100. Type your guess below:`;
-    }
-    return null;
-  }
 
-  function handleMemoryStore(raw) {
-    const clean = raw.toLowerCase().trim();
-    const nameMatch = raw.match(/(?:my name is|call me|i am) ([a-zA-Z]+)/i);
-    if (nameMatch && !clean.includes("who") && !clean.includes("what")) {
-      memory.name = nameMatch[1];
-      saveMemory();
-      return `Nice to meet you, <b>${memory.name}</b>! Saved to RAM.`;
+    .chat-container {
+      width: 100%;
+      max-width: 640px;
+      height: 94vh;
+      background: var(--panel);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      overflow: hidden;
+      border: 1px solid var(--border);
     }
-    const kvMatch = raw.match(/(?:remember|save|note)(?:\s+that)?\s+(?:my\s+)?(.+?)\s+(?:is|are|=)\s+(.+)/i);
-    if (kvMatch) {
-      memory.facts[kvMatch[1].trim().toLowerCase()] = kvMatch[2].trim();
-      saveMemory();
-      return `Saved to RAM: <b>${kvMatch[1].trim()}</b> ➔ <b>${kvMatch[2].trim()}</b>`;
-    }
-    if (clean.includes("what is my name") || clean.includes("who am i")) {
-      return memory.name ? `Your name is <b>${memory.name}</b>!` : "I don't know your name yet. Tell me using 'My name is [Name]'!";
-    }
-    return null;
-  }
 
-  function handleMath(rawQuery) {
-    let expr = rawQuery.toLowerCase()
-      .replace(/\b(what|is|whats|calculate|solve|eval|evaluate|how|much|does|equal|to)\b/gi, '')
-      .replace(/plus/g, '+').replace(/minus/g, '-').replace(/times|x/g, '*').replace(/divided by|over/g, '/')
-      .trim();
+    .chat-header {
+      background: var(--header);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--header);
+      border: 1px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .header-info h4 { margin: 0; font-size: 15px; color: var(--text); }
+    .header-info p { margin: 2px 0 0; font-size: 11px; color: var(--accent); }
+
+    .protocol-warning {
+      display: none;
+      background: rgba(248, 113, 113, 0.15);
+      border-bottom: 1px solid var(--error);
+      color: #fca5a5;
+      padding: 8px 16px;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .status-bar {
+      background: var(--header);
+      padding: 8px 16px;
+      font-size: 11px;
+      color: var(--subtext);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress-container {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      height: 4px;
+      position: relative;
+    }
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.3s;
+    }
+
+    .chat-box {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    .user { align-self: flex-end; background: var(--user-msg); color: #fff; border-bottom-right-radius: 4px; }
+    .bot { align-self: flex-start; background: var(--bot-msg); color: var(--text); border-bottom-left-radius: 4px; }
+
+    .input-area { display: flex; padding: 12px 14px; background: var(--header); gap: 8px; align-items: center; }
     
-    if (/^[0-9\+\-\*\/\%\(\)\.\^\s]+$/.test(expr) && /[0-9]/.test(expr)) {
-      try {
-        const val = Function(`'use strict'; return (${expr.replace(/\^/g, '**')})`)();
-        if (val !== undefined && !isNaN(val)) return `🧮 Result: <b>${val}</b>`;
-      } catch (e) {}
-    }
-    return null;
-  }
-
-  async function fetchWeather(rawQuery) {
-    const clean = rawQuery.toLowerCase();
-    if (!/\b(weather|temperature|temp|forecast)\b/i.test(clean)) return null;
-    let targetCity = clean.match(/(?:in|for|at|near)\s+([a-zA-Z\s,]+)/i)?.[1]?.trim() || "";
-
-    try {
-      let lat, lon, name = "your location";
-      if (targetCity) {
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(targetCity)}&count=1&language=en&format=json`);
-        const geoData = await geoRes.json();
-        if (geoData.results?.length) {
-          lat = geoData.results[0].latitude; lon = geoData.results[0].longitude; name = geoData.results[0].name;
-        } else {
-            return `☁️ I couldn't find the city "${targetCity}".`;
-        }
-      } else {
-        const ipData = await (await fetch('https://get.geojs.io/v1/ip/geo.json')).json();
-        lat = ipData.latitude; lon = ipData.longitude; name = ipData.city || name;
-      }
-      const wData = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)).json();
-      return `Weather for <b>${name}</b>:<br>🌡️ <b>${(wData.current_weather.temperature * 9/5 + 32).toFixed(1)}°F</b> (${wData.current_weather.temperature}°C)<br>💨 Wind: <b>${wData.current_weather.windspeed} km/h</b>`;
-    } catch(e) { return "🌩️ Couldn't fetch weather right now."; }
-  }
-
-  async function generateResponse(raw) {
-    const input = raw.trim();
-
-    // Local overrides
-    const localRes = handleMemoryStore(input) || handleGameEngine(input) || handleMath(input);
-    if (localRes) return localRes;
-
-    // Images
-    const imgMatch = input.match(/^(?:generate|draw|create|paint|show\s+me|make|render)\s+(?:an?\s+)?(?:image|picture|photo|art)?\s*(?:of)?\s*(.+)$/i);
-    if (imgMatch) {
-      return `🎨 Here is your image for <b>"${imgMatch[1].trim()}"</b>:<br><img src="https://image.pollinations.ai/prompt/${encodeURIComponent(imgMatch[1].trim())}?width=512&height=512&nologo=true" alt="${imgMatch[1]}">`;
+    input[type="text"] {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      outline: none;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 14px;
     }
 
-    // Weather
-    const weather = await fetchWeather(input);
-    if (weather) return weather;
+    button.send-btn {
+      padding: 12px 18px;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 24px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
 
-    // External AI API Call
-    try {
-      chatHistory.push(`User: ${input}`);
-      if (chatHistory.length > 6) chatHistory = chatHistory.slice(chatHistory.length - 6);
-      
-      const promptString = chatHistory.join('\n') + '\nKris:';
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-      
-      const res = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptString)}`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text.trim()) {
-            chatHistory.push(`Kris: ${text.trim()}`);
-            return formatMarkdown(text.trim());
-        }
-      }
-    } catch(e) {}
+<div class="chat-container">
+  <div class="chat-header">
+    <div class="header-left">
+      <div class="avatar">
+        <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
+          <path d="M28 20 V80 M28 50 L70 20 M38 42 L72 80" stroke="#38bdf8" stroke-width="12" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="header-info">
+        <h4>Kris AI 14.1 (Standalone)</h4>
+        <p id="engineStatus">● Initializing Local Engine...</p>
+      </div>
+    </div>
+    <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearMemory()">🧹 Clear</button>
+  </div>
 
-    return `⚠️ <b>Network Fallback:</b> Couldn't connect to external AI servers. Try local commands like <code>play guess game</code> or <code>5 + 12</code>!`;
+  <div class="protocol-warning" id="fileWarning">
+    ⚠️ <b>Local File Protocol Detected:</b> Browsers block neural model downloads when opening HTML directly (<code>file://</code>). Run a local web server (e.g., VS Code extension <b>Live Server</b> or terminal command <code>npx serve</code>).
+  </div>
+
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div class="status-bar">
+    <span id="modelInfo">Model: Qwen1.5-0.5B-Chat (Lightweight ONNX)</span>
+    <span id="memCount">Memory: 0 turns</span>
+  </div>
+
+  <div class="chat-box" id="chatBox"></div>
+
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Loading local model..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script type="module">
+  import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+  env.allowLocalModels = false;
+  let generator = null;
+  let conversationHistory = [];
+
+  // Check protocol to alert user about file:// limitations
+  if (window.location.protocol === 'file:') {
+    document.getElementById('fileWarning').style.display = 'block';
   }
 
-  // --- UI Execution ---
+  function loadMemory() {
+    const stored = localStorage.getItem('kris_standalone_history');
+    conversationHistory = stored ? JSON.parse(stored) : [];
+    updateMemoryUI();
+    renderHistoryToDOM();
+  }
 
-  function showTypingIndicator() {
-    hideTypingIndicator();
+  function saveMemory(role, content) {
+    conversationHistory.push({ role, content });
+    if (conversationHistory.length > 16) conversationHistory.shift();
+    localStorage.setItem('kris_standalone_history', JSON.stringify(conversationHistory));
+    updateMemoryUI();
+  }
+
+  window.clearMemory = function() {
+    conversationHistory = [];
+    localStorage.removeItem('kris_standalone_history');
+    document.getElementById('chatBox').innerHTML = '';
+    updateMemoryUI();
+    appendBotMessage("Memory reset! Ask me anything—I'm running 100% locally in your browser.");
+  };
+
+  function updateMemoryUI() {
+    document.getElementById('memCount').textContent = `Memory: ${conversationHistory.length} turns`;
+  }
+
+  async function initLocalAI() {
+    const statusText = document.getElementById('engineStatus');
+    const progressBar = document.getElementById('progressBar');
+
+    try {
+      // Switched to low-overhead 0.5B chat model (~300MB)
+      generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
+        progress_callback: (data) => {
+          if (data.status === 'progress') {
+            const pct = Math.round(data.progress || 0);
+            progressBar.style.width = `${pct}%`;
+            statusText.textContent = `● Loading Weights (${pct}%)...`;
+          }
+        }
+      });
+
+      statusText.textContent = '● Engine Ready (On-Device)';
+      progressBar.style.width = '100%';
+
+      document.getElementById('userInput').disabled = false;
+      document.getElementById('sendBtn').disabled = false;
+      document.getElementById('userInput').placeholder = 'Type a message...';
+      
+      loadMemory();
+    } catch (err) {
+      statusText.textContent = '⚠️ Engine Load Failed';
+      statusText.style.color = 'var(--error)';
+      appendBotMessage(`<b>Error loading engine:</b> ${err.message}<br><br>Make sure you are running the app through a local HTTP server instead of double-clicking the file.`);
+      console.error(err);
+    }
+  }
+
+  async function generateResponse(promptText) {
+    saveMemory("user", promptText);
+
+    // Format prompt using standard ChatML format
+    let chatPrompt = `<|im_start|>system\nYou are Kris AI, a direct and friendly local assistant.<|im_end|>\n`;
+    conversationHistory.forEach(m => {
+      chatPrompt += `<|im_start|>${m.role === 'user' ? 'user' : 'assistant'}\n${m.content}<|im_end|>\n`;
+    });
+    chatPrompt += `<|im_start|>assistant\n`;
+
+    const output = await generator(chatPrompt, {
+      max_new_tokens: 100,
+      temperature: 0.6,
+      repetition_penalty: 1.15,
+      stop: ["<|im_end|>", "<|endoftext|>"]
+    });
+
+    let rawText = output[0].generated_text;
+    let response = rawText.substring(rawText.lastIndexOf('<|im_start|>assistant\n') + 21).replace('<|im_end|>', '').trim();
+    
+    saveMemory("assistant", response);
+    return response;
+  }
+
+  function appendUserMessage(text) {
     const chatBox = document.getElementById("chatBox");
     const msg = document.createElement("div");
-    msg.className = "message bot typing-indicator";
-    msg.id = "typingBubble";
-    msg.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+    msg.className = "message user";
+    msg.textContent = text;
     chatBox.appendChild(msg);
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  function hideTypingIndicator() {
-    const typingMsg = document.getElementById("typingBubble");
-    if (typingMsg) typingMsg.remove();
-  }
-
-  function appendBotMessage(html) {
+  function appendBotMessage(text) {
     const chatBox = document.getElementById("chatBox");
     const msg = document.createElement("div");
     msg.className = "message bot";
-    msg.innerHTML = html;
+    msg.innerHTML = DOMPurify.sanitize(text);
     chatBox.appendChild(msg);
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  async function sendMessage() {
-    const input = document.getElementById("userInput");
-    const chatBox = document.getElementById("chatBox");
-    const text = input.value.trim();
-    if (!text) return;
-
-    // Render User Message
-    const userMsg = document.createElement("div");
-    userMsg.className = "message user";
-    userMsg.innerText = text;
-    chatBox.appendChild(userMsg);
-
-    input.value = "";
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    showTypingIndicator();
-
-    try {
-      let response = await generateResponse(text);
-      hideTypingIndicator();
-      appendBotMessage(response);
-      speak(response);
-    } catch (err) {
-      console.error("Message Error:", err);
-      hideTypingIndicator();
-      appendBotMessage("⚠️ <b>An error occurred while processing your message.</b>");
+  function renderHistoryToDOM() {
+    document.getElementById("chatBox").innerHTML = '';
+    if (conversationHistory.length === 0) {
+      appendBotMessage("<b>Welcome to Kris AI 14.1 👋</b><br>I am fully running in your browser memory. No API keys or remote servers required!");
+      return;
     }
+    conversationHistory.forEach(m => {
+      if (m.role === 'user') appendUserMessage(m.content);
+      if (m.role === 'assistant') appendBotMessage(m.content);
+    });
   }
 
-  updateUIState();
+  window.sendMessage = async function() {
+    const input = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const text = input.value.trim();
+
+    if (!text || !generator) return;
+
+    appendUserMessage(text);
+    input.value = "";
+    input.disabled = true;
+    sendBtn.disabled = true;
+
+    try {
+      const reply = await generateResponse(text);
+      appendBotMessage(reply);
+    } catch (e) {
+      appendBotMessage("⚠️ Error processing request locally.");
+    } finally {
+      input.disabled = false;
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  };
+
+  initLocalAI();
 </script>
+</body>
+</html>
