@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Fast Standalone Engine</title>
+  <title>Kris AI 14.1 - Robust Local Engine</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -181,7 +181,7 @@
   </div>
 
   <div class="status-bar">
-    <span id="modelInfo">Model: Qwen1.5-0.5B-Chat (WebGPU Quantized)</span>
+    <span id="modelInfo">Model: Qwen1.5-0.5B-Chat (INT4 ONNX)</span>
     <span id="memCount">Memory: 0 turns</span>
   </div>
 
@@ -234,21 +234,26 @@
     const statusText = document.getElementById('engineStatus');
     const progressBar = document.getElementById('progressBar');
 
+    // Safe detection of WebGPU support
+    const supportsWebGPU = !!navigator.gpu;
+    const targetDevice = supportsWebGPU ? 'webgpu' : 'wasm';
+
     try {
-      // Load public Xenova repo with WebGPU acceleration and 4-bit quantization
+      statusText.textContent = `● Downloading Weights (${supportsWebGPU ? 'WebGPU' : 'WASM'})...`;
+
       generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
-        device: 'webgpu',
+        device: targetDevice,
         dtype: 'q4',
         progress_callback: (data) => {
           if (data.status === 'progress') {
             const pct = Math.round(data.progress || 0);
             progressBar.style.width = `${pct}%`;
-            statusText.textContent = `● Loading Model (${pct}%)...`;
+            statusText.textContent = `● Downloading Model (${pct}%)...`;
           }
         }
       });
 
-      statusText.textContent = '● Engine Ready (WebGPU Acceleration)';
+      statusText.textContent = `● Engine Ready (${supportsWebGPU ? 'WebGPU' : 'WASM CPU'})`;
       progressBar.style.width = '100%';
 
       document.getElementById('userInput').disabled = false;
@@ -257,30 +262,10 @@
       
       loadMemory();
     } catch (err) {
-      console.warn("WebGPU initialization failed. Falling back to WASM/CPU.", err);
-      try {
-        generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
-          dtype: 'q4',
-          progress_callback: (data) => {
-            if (data.status === 'progress') {
-              const pct = Math.round(data.progress || 0);
-              progressBar.style.width = `${pct}%`;
-              statusText.textContent = `● Loading Model (${pct}%)...`;
-            }
-          }
-        });
-        statusText.textContent = '● Engine Ready (WASM Fallback)';
-        progressBar.style.width = '100%';
-        document.getElementById('userInput').disabled = false;
-        document.getElementById('sendBtn').disabled = false;
-        document.getElementById('userInput').placeholder = 'Type a message...';
-        loadMemory();
-      } catch (fallbackErr) {
-        statusText.textContent = '⚠️ Engine Load Failed';
-        statusText.style.color = 'var(--error)';
-        appendBotMessage(`<b>Error loading engine:</b> ${fallbackErr.message}<br><br>Make sure you run this file through a local HTTP server (e.g. VS Code <b>Live Server</b> or <code>npx serve</code>).`);
-        console.error(fallbackErr);
-      }
+      statusText.textContent = '⚠️ Engine Load Failed';
+      statusText.style.color = 'var(--error)';
+      appendBotMessage(`<b>Error loading engine:</b> ${err.message}<br><br><b>Steps to resolve:</b><br>1. Verify you are using a local web server (e.g., Live Server or <code>npx serve</code>).<br>2. Disable adblockers that might restrict HuggingFace downloads.`);
+      console.error(err);
     }
   }
 
@@ -301,7 +286,6 @@
 
     let fullReply = "";
 
-    // Stream text live token-by-token into the DOM
     const streamer = new TextStreamer(generator.tokenizer, {
       skip_prompt: true,
       skip_special_tokens: true,
