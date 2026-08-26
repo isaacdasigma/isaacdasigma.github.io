@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Robust Local Engine</title>
+  <title>Kris AI 14.1 - Fixed Standalone Engine</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -196,7 +196,12 @@
 <script type="module">
   import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
+  // Environment Configuration to Fix Browser Freezes
   env.allowLocalModels = false;
+  if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
+    env.backends.onnx.wasm.numThreads = 1; // Prevents SharedArrayBuffer thread locks
+  }
+
   let generator = null;
   let conversationHistory = [];
 
@@ -234,26 +239,22 @@
     const statusText = document.getElementById('engineStatus');
     const progressBar = document.getElementById('progressBar');
 
-    // Safe detection of WebGPU support
-    const supportsWebGPU = !!navigator.gpu;
-    const targetDevice = supportsWebGPU ? 'webgpu' : 'wasm';
-
     try {
-      statusText.textContent = `● Downloading Weights (${supportsWebGPU ? 'WebGPU' : 'WASM'})...`;
+      statusText.textContent = '● Downloading Model Weights...';
 
       generator = await pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
-        device: targetDevice,
-        dtype: 'q4',
         progress_callback: (data) => {
           if (data.status === 'progress') {
             const pct = Math.round(data.progress || 0);
             progressBar.style.width = `${pct}%`;
             statusText.textContent = `● Downloading Model (${pct}%)...`;
+          } else if (data.status === 'done') {
+            statusText.textContent = `● Processing ${data.file}...`;
           }
         }
       });
 
-      statusText.textContent = `● Engine Ready (${supportsWebGPU ? 'WebGPU' : 'WASM CPU'})`;
+      statusText.textContent = '● Engine Ready';
       progressBar.style.width = '100%';
 
       document.getElementById('userInput').disabled = false;
@@ -264,7 +265,7 @@
     } catch (err) {
       statusText.textContent = '⚠️ Engine Load Failed';
       statusText.style.color = 'var(--error)';
-      appendBotMessage(`<b>Error loading engine:</b> ${err.message}<br><br><b>Steps to resolve:</b><br>1. Verify you are using a local web server (e.g., Live Server or <code>npx serve</code>).<br>2. Disable adblockers that might restrict HuggingFace downloads.`);
+      appendBotMessage(`<b>Initialization Error:</b> ${err.message}<br><br><b>How to fix:</b><br>1. Open via <code>http://localhost</code> (Use VS Code <b>Live Server</b> extension or run <code>npx serve</code> in terminal).<br>2. Disable any browser extension that blocks external scripts or downloads.`);
       console.error(err);
     }
   }
@@ -327,7 +328,7 @@
   function renderHistoryToDOM() {
     document.getElementById("chatBox").innerHTML = '';
     if (conversationHistory.length === 0) {
-      appendBotMessage("<b>Welcome to Kris AI 14.1 ⚡</b><br>I am fully running in your browser memory. No API keys or remote servers required!");
+      appendBotMessage("<b>Welcome to Kris AI 14.1 ⚡</b><br>I am fully running in your browser memory. No API keys required!");
       return;
     }
     conversationHistory.forEach(m => {
