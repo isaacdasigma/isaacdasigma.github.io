@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Fast Edition</title>
+  <title>Kris AI 14.1 - Turbo Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -141,10 +141,8 @@
 <script type="module">
   import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers';
 
-  // Force cache optimization for sub-second warm reloads
   env.allowLocalModels = false;
   env.useBrowserCache = true;
-  env.useCustomCache = true;
 
   if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
     env.backends.onnx.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 2);
@@ -181,7 +179,6 @@
     updateStatus(`● Loading Fast Engine (${device.toUpperCase()})...`, 15);
 
     try {
-      // 135M quantized model (~80MB download, 3x faster startup)
       generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
         device: device,
         dtype: 'q4',
@@ -196,7 +193,7 @@
       document.getElementById('userInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('userInput').placeholder = 'Type a message...';
-      appendBotMessage("<b>Turbo Engine Ready!</b><br>Fast download, instant boot, and optimized for slang.");
+      appendBotMessage("<b>Turbo Engine Ready!</b><br>Fast download, instant boot, and browser caching active.");
     } catch (err) {
       updateStatus(`⚠️ Engine Error`);
       appendBotMessage(`<b>Failed to load model:</b> ${err.message}`);
@@ -227,7 +224,6 @@
     activeBotMsg.className = "message bot";
     chatBox.appendChild(activeBotMsg);
 
-    // Explicit system prompt fixes 135M slang/identity confusion
     let prompt = `<|im_start|>system\nYou are Kris AI. You respond directly to the user in a casual, conversational tone. Do not provide dictionary definitions.<|im_end|>\n`;
     history.forEach(item => {
       prompt += `<|im_start|>${item.role}\n${item.content}<|im_end|>\n`;
