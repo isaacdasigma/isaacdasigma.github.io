@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Turbo Edition</title>
+  <title>Kris AI 14.1 - Focused Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -120,7 +120,7 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 14.1 (Turbo Edition)</h4>
+      <h4>Kris AI 14.1 (Focused Edition)</h4>
       <p id="engineStatus">● Initializing...</p>
     </div>
     <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearChat()">🧹 Clear</button>
@@ -133,7 +133,7 @@
   <div class="chat-box" id="chatBox"></div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Fast-loading AI..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Loading engine..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
     <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
   </div>
 </div>
@@ -171,12 +171,12 @@
   window.clearChat = function() {
     history = [];
     document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Cleared! Ask me a question.");
+    appendBotMessage("Cleared! Ask me anything.");
   };
 
   async function initEngine() {
     const device = !!navigator.gpu ? 'webgpu' : 'wasm';
-    updateStatus(`● Loading Fast Engine (${device.toUpperCase()})...`, 15);
+    updateStatus(`● Loading Engine (${device.toUpperCase()})...`, 15);
 
     try {
       generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
@@ -193,7 +193,7 @@
       document.getElementById('userInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('userInput').placeholder = 'Type a message...';
-      appendBotMessage("<b>Turbo Engine Ready!</b><br>Fast download, instant boot, and browser caching active.");
+      appendBotMessage("<b>Engine Ready!</b><br>Greedy decoding active for focused, logical responses.");
     } catch (err) {
       updateStatus(`⚠️ Engine Error`);
       appendBotMessage(`<b>Failed to load model:</b> ${err.message}`);
@@ -218,17 +218,17 @@
     sendBtn.disabled = true;
 
     history.push({ role: 'user', content: text });
-    if (history.length > 4) history.shift();
+    if (history.length > 6) history.shift();
 
     activeBotMsg = document.createElement("div");
     activeBotMsg.className = "message bot";
     chatBox.appendChild(activeBotMsg);
 
-    let prompt = `<|im_start|>system\nYou are Kris AI. You respond directly to the user in a casual, conversational tone. Do not provide dictionary definitions.<|im_end|>\n`;
-    history.forEach(item => {
-      prompt += `<|im_start|>${item.role}\n${item.content}<|im_end|>\n`;
-    });
-    prompt += `<|im_start|>assistant\n`;
+    // Standard ChatML structure array prevents template confusion
+    const messages = [
+      { role: 'system', content: 'You are Kris AI, a helpful, direct assistant. Answer questions logically without rambling.' },
+      ...history
+    ];
 
     let responseText = "";
 
@@ -243,14 +243,10 @@
     });
 
     try {
-      await generator(prompt, {
-        max_new_tokens: 250,
-        do_sample: true,
-        temperature: 0.2,
-        top_k: 20,
-        repetition_penalty: 1.2,
-        streamer: streamer,
-        stop: ["<|im_end|>", "<|endoftext|>"]
+      await generator(messages, {
+        max_new_tokens: 200,
+        do_sample: false, // Greedy decoding stops hallucinations in small models
+        streamer: streamer
       });
 
       history.push({ role: 'assistant', content: responseText.trim() });
