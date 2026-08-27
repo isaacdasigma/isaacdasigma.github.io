@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Crash Safe</title>
+  <title>Kris AI 14.1 - Zero Crash Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -120,7 +120,7 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 14.1 (Crash-Proof)</h4>
+      <h4>Kris AI 14.1 (Zero Crash)</h4>
       <p id="engineStatus">● Initializing...</p>
     </div>
     <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearChat()">🧹 Clear</button>
@@ -133,7 +133,7 @@
   <div class="chat-box" id="chatBox"></div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Loading engine safely..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Loading low-RAM engine..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
     <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
   </div>
 </div>
@@ -144,7 +144,7 @@
   env.allowLocalModels = false;
   env.useBrowserCache = true;
 
-  // Single-thread WASM prevents WebAssembly memory allocation crashes in CodeSandbox
+  // Single WASM thread prevents browser memory heap crashes in CodeSandbox
   if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
     env.backends.onnx.wasm.numThreads = 1;
   }
@@ -172,17 +172,17 @@
   window.clearChat = function() {
     history = [];
     document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Memory cleared! Ready for new questions.");
+    appendBotMessage("Memory cleared! What can I help you with?");
   };
 
   async function initEngine() {
-    let targetDevice = !!navigator.gpu ? 'webgpu' : 'wasm';
-    updateStatus(`● Loading Qwen 0.5B (${targetDevice.toUpperCase()})...`, 10);
+    let preferredDevice = !!navigator.gpu ? 'webgpu' : 'wasm';
+    updateStatus(`● Loading 135M Model (${preferredDevice.toUpperCase()})...`, 15);
 
     try {
-      // First attempt: Load model with quantization
-      generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
-        device: targetDevice,
+      // 135M model fits safely in CodeSandbox RAM (<200MB execution memory)
+      generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
+        device: preferredDevice,
         dtype: 'q4',
         progress_callback: (p) => {
           if (p.status === 'progress') {
@@ -191,27 +191,26 @@
         }
       });
     } catch (err) {
-      console.warn("Primary engine failed, falling back to WASM mode...", err);
-      // Fallback attempt: Force WASM if WebGPU ran out of memory
+      console.warn("WebGPU init failed, switching to WASM fallback...", err);
       try {
-        targetDevice = 'wasm';
-        updateStatus(`● Fallback: Loading WASM engine...`, 50);
-        generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
+        preferredDevice = 'wasm';
+        updateStatus(`● Loading WASM mode...`, 50);
+        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
           device: 'wasm',
           dtype: 'q4'
         });
       } catch (wasmErr) {
-        updateStatus(`⚠️ Memory Limit Exceeded`);
-        appendBotMessage(`<b>Memory Error:</b> Sandbox memory cap reached. Close extra browser tabs and reload.`);
+        updateStatus(`⚠️ Engine Error`);
+        appendBotMessage(`<b>Error initializing engine:</b> ${wasmErr.message}`);
         return;
       }
     }
 
-    updateStatus(`● Ready (${targetDevice.toUpperCase()})`, 100);
+    updateStatus(`● Ready (${preferredDevice.toUpperCase()})`, 100);
     document.getElementById('userInput').disabled = false;
     document.getElementById('sendBtn').disabled = false;
     document.getElementById('userInput').placeholder = 'Type a message...';
-    appendBotMessage("<b>Crash Guard Active!</b><br>I'm Kris AI. Smart Qwen 0.5B logic running with memory protection.");
+    appendBotMessage("<b>Engine Ready!</b><br>Lightweight 135M engine running with greedy decoding for zero crashes and focused answers.");
   }
 
   window.sendMessage = async function() {
@@ -231,16 +230,16 @@
     input.disabled = true;
     sendBtn.disabled = true;
 
-    // Strictly limit active context to 2 turns max so memory usage doesn't scale infinitely
+    // Retain only last 4 chat turns to cap context memory expansion
     history.push({ role: 'user', content: text });
-    if (history.length > 2) history = history.slice(-2);
+    if (history.length > 4) history = history.slice(-4);
 
     activeBotMsg = document.createElement("div");
     activeBotMsg.className = "message bot";
     chatBox.appendChild(activeBotMsg);
 
     const messages = [
-      { role: 'system', content: 'You are Kris AI, a helpful, intelligent assistant. Give clear, direct answers.' },
+      { role: 'system', content: 'You are Kris AI, a clear and direct assistant. Respond accurately to questions and math without going off-topic.' },
       ...history
     ];
 
@@ -258,14 +257,14 @@
 
     try {
       await generator(messages, {
-        max_new_tokens: 150, // Capped to prevent memory expansion during generation
-        do_sample: false,
+        max_new_tokens: 150,
+        do_sample: false, // Disables sampling randomness to stop incoherent rambling
         streamer: streamer
       });
 
       history.push({ role: 'assistant', content: responseText.trim() });
     } catch (e) {
-      activeBotMsg.textContent = "⚠️ Response stopped to prevent out-of-memory crash.";
+      activeBotMsg.textContent = "⚠️ Error generating response.";
     } finally {
       input.disabled = false;
       sendBtn.disabled = false;
