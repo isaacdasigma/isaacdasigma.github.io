@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Focused Edition</title>
+  <title>Kris AI 14.1 - Smart & Stable</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -120,7 +120,7 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 14.1 (Focused Edition)</h4>
+      <h4>Kris AI 14.1 (Qwen 0.5B Pro)</h4>
       <p id="engineStatus">● Initializing...</p>
     </div>
     <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearChat()">🧹 Clear</button>
@@ -133,7 +133,7 @@
   <div class="chat-box" id="chatBox"></div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Loading engine..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Loading smart engine..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
     <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
   </div>
 </div>
@@ -144,8 +144,9 @@
   env.allowLocalModels = false;
   env.useBrowserCache = true;
 
+  // Cap web assembly workers so CodeSandbox iframe doesn't crash on memory allocation
   if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
-    env.backends.onnx.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 2);
+    env.backends.onnx.wasm.numThreads = 1;
   }
 
   let generator = null;
@@ -171,20 +172,21 @@
   window.clearChat = function() {
     history = [];
     document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Cleared! Ask me anything.");
+    appendBotMessage("Memory reset! What would you like to chat about?");
   };
 
   async function initEngine() {
     const device = !!navigator.gpu ? 'webgpu' : 'wasm';
-    updateStatus(`● Loading Engine (${device.toUpperCase()})...`, 15);
+    updateStatus(`● Loading Qwen 0.5B (${device.toUpperCase()})...`, 10);
 
     try {
-      generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
+      // Qwen2.5-0.5B-Instruct is significantly smarter, understands slang, and handles logic/math accurately
+      generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
         device: device,
         dtype: 'q4',
         progress_callback: (p) => {
           if (p.status === 'progress') {
-            updateStatus(`● Fetching Weights (${Math.round(p.progress || 0)}%)...`, Math.round(p.progress || 0));
+            updateStatus(`● Fetching Smart Weights (${Math.round(p.progress || 0)}%)...`, Math.round(p.progress || 0));
           }
         }
       });
@@ -193,7 +195,7 @@
       document.getElementById('userInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('userInput').placeholder = 'Type a message...';
-      appendBotMessage("<b>Engine Ready!</b><br>Greedy decoding active for focused, logical responses.");
+      appendBotMessage("<b>Smart Engine Ready!</b><br>I'm Kris AI. Upgraded with Qwen 2.5 logic for accurate, intelligent responses.");
     } catch (err) {
       updateStatus(`⚠️ Engine Error`);
       appendBotMessage(`<b>Failed to load model:</b> ${err.message}`);
@@ -217,16 +219,16 @@
     input.disabled = true;
     sendBtn.disabled = true;
 
+    // Strict history length keeps KV-Cache size low so CodeSandbox won't crash
     history.push({ role: 'user', content: text });
-    if (history.length > 6) history.shift();
+    if (history.length > 4) history.shift();
 
     activeBotMsg = document.createElement("div");
     activeBotMsg.className = "message bot";
     chatBox.appendChild(activeBotMsg);
 
-    // Standard ChatML structure array prevents template confusion
     const messages = [
-      { role: 'system', content: 'You are Kris AI, a helpful, direct assistant. Answer questions logically without rambling.' },
+      { role: 'system', content: 'You are Kris AI, a helpful, intelligent, and logical AI assistant. Understand casual slang naturally, answer math and reasoning directly, and keep responses concise.' },
       ...history
     ];
 
@@ -244,8 +246,8 @@
 
     try {
       await generator(messages, {
-        max_new_tokens: 200,
-        do_sample: false, // Greedy decoding stops hallucinations in small models
+        max_new_tokens: 256,
+        do_sample: false, // Prevents random hallucination / incoherent rambling
         streamer: streamer
       });
 
