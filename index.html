@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Turbo Edition</title>
+  <title>Kris AI 14.1 - Sandbox Optimized</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -120,7 +120,7 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 14.1 (Viewer Ready)</h4>
+      <h4>Kris AI 14.1 (Low-RAM Edition)</h4>
       <p id="engineStatus">● Initializing...</p>
     </div>
     <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearChat()">🧹 Clear</button>
@@ -133,7 +133,7 @@
   <div class="chat-box" id="chatBox"></div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Loading engine..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Loading low-RAM model..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
     <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
   </div>
 </div>
@@ -143,12 +143,15 @@
 
   env.allowLocalModels = false;
   env.useBrowserCache = true;
+  
+  // Restrict WASM workers to prevent memory explosion in sandboxed iframes
   if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
     env.backends.onnx.wasm.numThreads = 1;
   }
 
   let generator = null;
   let activeBotMsg = null;
+  let history = [];
 
   function updateStatus(text, progress = 0) {
     document.getElementById('engineStatus').textContent = text;
@@ -167,16 +170,18 @@
   }
 
   window.clearChat = function() {
+    history = [];
     document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Chat cleared! Ask me a question.");
+    appendBotMessage("Memory cleared! What's on your mind?");
   };
 
   async function initEngine() {
     const device = !!navigator.gpu ? 'webgpu' : 'wasm';
-    updateStatus(`● Downloading Model (${device.toUpperCase()})...`, 10);
+    updateStatus(`● Downloading 360M Engine (${device.toUpperCase()})...`, 5);
 
     try {
-      generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
+      // SmolLM2 360M fits well within CodeSandbox memory limits (~350MB max RAM footprint)
+      generator = await pipeline('text-generation', 'onnx-community/SmolLM2-360M-Instruct-ONNX', {
         device: device,
         dtype: 'q4',
         progress_callback: (p) => {
@@ -190,7 +195,7 @@
       document.getElementById('userInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('userInput').placeholder = 'Type a message...';
-      appendBotMessage("<b>Engine Ready!</b><br>Updated for fast, accurate responses and complete lists.");
+      appendBotMessage("<b>Engine Ready!</b><br>I'm Kris AI (360M). Smart, lightweight, and sandbox-safe.");
     } catch (err) {
       updateStatus(`⚠️ Engine Error`);
       appendBotMessage(`<b>Failed to load model:</b> ${err.message}`);
@@ -214,12 +219,20 @@
     input.disabled = true;
     sendBtn.disabled = true;
 
+    history.push({ role: 'user', content: text });
+    if (history.length > 4) history.shift();
+
     activeBotMsg = document.createElement("div");
     activeBotMsg.className = "message bot";
     chatBox.appendChild(activeBotMsg);
 
+    let prompt = `<|im_start|>system\nYou are Kris AI, a smart and helpful assistant. Understand user slang and answer directly.<|im_end|>\n`;
+    history.forEach(item => {
+      prompt += `<|im_start|>${item.role}\n${item.content}<|im_end|>\n`;
+    });
+    prompt += `<|im_start|>assistant\n`;
+
     let responseText = "";
-    const prompt = `<|im_start|>system\nYou are a factual, concise assistant. Provide short, accurate lists without inventing information.<|im_end|>\n<|im_start|>user\n${text}<|im_end|>\n<|im_start|>assistant\n`;
 
     const streamer = new TextStreamer(generator.tokenizer, {
       skip_prompt: true,
@@ -233,16 +246,18 @@
 
     try {
       await generator(prompt, {
-        max_new_tokens: 250,
+        max_new_tokens: 300,
         do_sample: true,
-        temperature: 0.2,
-        top_k: 20,
-        repetition_penalty: 1.2,
+        temperature: 0.5,
+        top_k: 30,
+        repetition_penalty: 1.15,
         streamer: streamer,
         stop: ["<|im_end|>", "<|endoftext|>"]
       });
+
+      history.push({ role: 'assistant', content: responseText.trim() });
     } catch (e) {
-      activeBotMsg.textContent = "⚠️ Error generating response.";
+      activeBotMsg.textContent = "⚠️ Memory limit reached or error generating response.";
     } finally {
       input.disabled = false;
       sendBtn.disabled = false;
