@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 17.1 - Grounded Identity Edition</title>
+  <title>Kris AI 19.0 - Anti-Hallucination Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -114,8 +114,8 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 17.1 (Fixed Identity)</h4>
-      <p id="engineStatus">● Initializing Grounded Engine...</p>
+      <h4>Kris AI 19.0 (ChatML Fixed)</h4>
+      <p id="engineStatus">● Initializing Engine...</p>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
       <span id="memCount" class="memory-badge">🧠 Memory: 0</span>
@@ -141,10 +141,6 @@
   env.allowLocalModels = false;
   env.useBrowserCache = true;
 
-  if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
-    env.backends.onnx.wasm.numThreads = 1;
-  }
-
   let generator = null;
   let history = [];
   let learnedFacts = [];
@@ -168,7 +164,7 @@
     learnedFacts = [];
     document.getElementById("memCount").textContent = "🧠 Memory: 0";
     document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Memory cleared! Identity re-grounded.");
+    appendBotMessage("Memory cleared!");
   };
 
   function updateMemory(userText) {
@@ -181,25 +177,35 @@
   }
 
   async function initEngine() {
-    updateStatus(`● Loading Model...`, 20);
+    updateStatus(`● Initializing Hardware...`, 20);
+
+    let deviceType = navigator.gpu ? 'webgpu' : 'wasm';
 
     try {
       generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
-        device: 'wasm',
+        device: deviceType,
         dtype: 'q4',
         progress_callback: (p) => {
-          if (p.status === 'progress') updateStatus(`● Fetching Model (${Math.round(p.progress || 0)}%)...`, Math.round(p.progress || 0));
+          if (p.status === 'progress') updateStatus(`● Loading Model (${Math.round(p.progress || 0)}%)...`, Math.round(p.progress || 0));
         }
       });
 
-      updateStatus(`● Ready (Grounded WASM)`, 100);
+      updateStatus(`● Ready (${deviceType.toUpperCase()})`, 100);
       document.getElementById('userInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('userInput').placeholder = 'Type a message...';
-      appendBotMessage("<b>Engine Ready!</b><br>Hallucination fix applied. My name is strictly Kris AI.");
+      appendBotMessage("<b>Engine Fixed!</b> Control tokens locked. My name is Kris AI.");
     } catch (err) {
-      updateStatus(`⚠️ Engine Error`);
-      appendBotMessage(`<b>Error:</b> ${err.message || err}`);
+      console.warn("GPU failed, using WASM...", err);
+      generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
+        device: 'wasm',
+        dtype: 'q4'
+      });
+      updateStatus(`● Ready (WASM Fallback)`, 100);
+      document.getElementById('userInput').disabled = false;
+      document.getElementById('sendBtn').disabled = false;
+      document.getElementById('userInput').placeholder = 'Type a message...';
+      appendBotMessage("<b>Ready on CPU WASM.</b>");
     }
   }
 
@@ -230,16 +236,17 @@
     activeBotMsg.textContent = "...";
     chatBox.appendChild(activeBotMsg);
 
-    // Hard-locked system prompt prevents persona drift
-    let systemContent = "You are Kris AI, a helpful AI assistant. Your name is ONLY Kris AI. Never claim to be Jaren Lee or any other system.";
+    // Build explicit ChatML prompt to prevent random training corpus hallucinations
+    let systemInstructions = "You are Kris AI. Your name is ONLY Kris AI. Give short, accurate answers.";
     if (learnedFacts.length > 0) {
-      systemContent += "\nUser Corrections:\n- " + learnedFacts.join("\n- ");
+      systemInstructions += "\nCorrections:\n" + learnedFacts.join("\n");
     }
 
-    const messages = [
-      { role: 'system', content: systemContent },
-      ...history
-    ];
+    let chatMLPrompt = `<|im_start|>system\n${systemInstructions}<|im_end|>\n`;
+    for (const item of history) {
+      chatMLPrompt += `<|im_start|>${item.role}\n${item.content}<|im_end|>\n`;
+    }
+    chatMLPrompt += `<|im_start|>assistant\n`;
 
     let responseText = "";
 
@@ -254,26 +261,22 @@
         }
       });
 
-      // Low temperature (0.1) stops wild random identity generation
-      const output = await generator(messages, {
-        max_new_tokens: 100,
+      // Controlled decoding prevents runaway text generation
+      await generator(chatMLPrompt, {
+        max_new_tokens: 80,
         do_sample: true,
-        temperature: 0.1,
-        top_p: 0.8,
-        repetition_penalty: 1.3,
-        no_repeat_ngram_size: 3,
+        temperature: 0.2,
+        top_p: 0.85,
+        repetition_penalty: 1.15,
+        stop: ['<|im_end|>', '<|endoftext|>'],
         streamer: streamer
       });
 
-      if (!responseText && output && output[0]) {
-        const generatedText = output[0].generated_text;
-        responseText = Array.isArray(generatedText) 
-          ? generatedText[generatedText.length - 1].content 
-          : String(generatedText);
-        activeBotMsg.textContent = responseText;
-      }
+      // Clean up control token artifacts if present
+      responseText = responseText.replace(/<\|im_end\|>/g, '').trim();
+      activeBotMsg.textContent = responseText;
 
-      history.push({ role: 'assistant', content: responseText.trim() });
+      history.push({ role: 'assistant', content: responseText });
     } catch (e) {
       console.error(e);
       activeBotMsg.textContent = `⚠️ Generation error.`;
