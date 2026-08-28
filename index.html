@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kris AI 19.0 - Anti-Hallucination Edition</title>
+  
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
   <style>
     :root {
       --bg: #070a12;
@@ -78,11 +81,31 @@
       font-size: 14px;
       line-height: 1.5;
       word-wrap: break-word;
-      white-space: pre-wrap;
     }
 
-    .user { align-self: flex-end; background: var(--user-msg); color: #fff; border-bottom-right-radius: 4px; }
-    .bot { align-self: flex-start; background: var(--bot-msg); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+    .user { 
+      align-self: flex-end; 
+      background: var(--user-msg); 
+      color: #fff; 
+      border-bottom-right-radius: 4px; 
+      white-space: pre-wrap;
+    }
+    
+    .bot { 
+      align-self: flex-start; 
+      background: var(--bot-msg); 
+      color: var(--text); 
+      border: 1px solid var(--border); 
+      border-bottom-left-radius: 4px; 
+    }
+
+    /* Markdown Styling for Bot Messages */
+    .bot p { margin: 0 0 10px 0; }
+    .bot p:last-child { margin: 0; }
+    .bot code { background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 13px; }
+    .bot pre { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+    .bot pre code { background: none; padding: 0; }
+    .bot ul, .bot ol { margin: 8px 0; padding-left: 20px; }
 
     .input-area { display: flex; padding: 12px 14px; background: var(--header); gap: 8px; }
     
@@ -114,7 +137,7 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 19.0 (ChatML Fixed)</h4>
+      <h4>Kris AI 19.0 (Upgraded)</h4>
       <p id="engineStatus">● Initializing Engine...</p>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
@@ -150,11 +173,11 @@
     if (progress > 0) document.getElementById('progressBar').style.width = `${progress}%`;
   }
 
-  function appendBotMessage(text) {
+  function appendBotMessage(htmlContent) {
     const chatBox = document.getElementById("chatBox");
     const msg = document.createElement("div");
     msg.className = "message bot";
-    msg.innerHTML = DOMPurify.sanitize(text);
+    msg.innerHTML = DOMPurify.sanitize(htmlContent);
     chatBox.appendChild(msg);
     chatBox.scrollTop = chatBox.scrollHeight;
   }
@@ -164,7 +187,7 @@
     learnedFacts = [];
     document.getElementById("memCount").textContent = "🧠 Memory: 0";
     document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Memory cleared!");
+    appendBotMessage("<b>Memory & context cleared!</b> Ready for a new conversation.");
   };
 
   function updateMemory(userText) {
@@ -176,9 +199,13 @@
     }
   }
 
+  // Prevents users from writing raw ChatML tokens to hijack system prompts
+  function sanitizeChatML(text) {
+    return text.replace(/<\|im_start\|>/g, '[start]').replace(/<\|im_end\|>/g, '[end]');
+  }
+
   async function initEngine() {
     updateStatus(`● Initializing Hardware...`, 20);
-
     let deviceType = navigator.gpu ? 'webgpu' : 'wasm';
 
     try {
@@ -191,10 +218,8 @@
       });
 
       updateStatus(`● Ready (${deviceType.toUpperCase()})`, 100);
-      document.getElementById('userInput').disabled = false;
-      document.getElementById('sendBtn').disabled = false;
-      document.getElementById('userInput').placeholder = 'Type a message...';
-      appendBotMessage("<b>Engine Fixed!</b> Control tokens locked. My name is Kris AI.");
+      enableChat();
+      appendBotMessage("<b>Engine Online!</b> Safeguards active and markdown rendering enabled. My name is Kris AI.");
     } catch (err) {
       console.warn("GPU failed, using WASM...", err);
       generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
@@ -202,19 +227,26 @@
         dtype: 'q4'
       });
       updateStatus(`● Ready (WASM Fallback)`, 100);
-      document.getElementById('userInput').disabled = false;
-      document.getElementById('sendBtn').disabled = false;
-      document.getElementById('userInput').placeholder = 'Type a message...';
+      enableChat();
       appendBotMessage("<b>Ready on CPU WASM.</b>");
     }
+  }
+
+  function enableChat() {
+    document.getElementById('userInput').disabled = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('userInput').placeholder = 'Type a message...';
   }
 
   window.sendMessage = async function() {
     const input = document.getElementById("userInput");
     const sendBtn = document.getElementById("sendBtn");
-    const text = input.value.trim();
+    let text = input.value.trim();
 
     if (!text || !generator) return;
+
+    // 1. Sanitize input to prevent prompt injection
+    text = sanitizeChatML(text);
 
     const chatBox = document.getElementById("chatBox");
     const userMsg = document.createElement("div");
@@ -228,15 +260,15 @@
 
     updateMemory(text);
 
+    // 2. Expand context memory depth from 2 to 8 messages (4 full conversational turns)
     history.push({ role: 'user', content: text });
-    if (history.length > 2) history = history.slice(-2);
+    if (history.length > 8) history = history.slice(-8);
 
     const activeBotMsg = document.createElement("div");
     activeBotMsg.className = "message bot";
-    activeBotMsg.textContent = "...";
+    activeBotMsg.innerHTML = '<span style="opacity:0.5">...</span>';
     chatBox.appendChild(activeBotMsg);
 
-    // Build explicit ChatML prompt to prevent random training corpus hallucinations
     let systemInstructions = "You are Kris AI. Your name is ONLY Kris AI. Give short, accurate answers.";
     if (learnedFacts.length > 0) {
       systemInstructions += "\nCorrections:\n" + learnedFacts.join("\n");
@@ -256,14 +288,14 @@
         skip_special_tokens: true,
         callback_function: (chunk) => {
           responseText += chunk;
-          activeBotMsg.textContent = responseText;
+          // 3. Render streamed response using Marked.js + DOMPurify
+          activeBotMsg.innerHTML = DOMPurify.sanitize(marked.parse(responseText));
           chatBox.scrollTop = chatBox.scrollHeight;
         }
       });
 
-      // Controlled decoding prevents runaway text generation
       await generator(chatMLPrompt, {
-        max_new_tokens: 80,
+        max_new_tokens: 150, // Slightly increased token limit for richer answers
         do_sample: true,
         temperature: 0.2,
         top_p: 0.85,
@@ -272,14 +304,13 @@
         streamer: streamer
       });
 
-      // Clean up control token artifacts if present
       responseText = responseText.replace(/<\|im_end\|>/g, '').trim();
-      activeBotMsg.textContent = responseText;
+      activeBotMsg.innerHTML = DOMPurify.sanitize(marked.parse(responseText));
 
       history.push({ role: 'assistant', content: responseText });
     } catch (e) {
       console.error(e);
-      activeBotMsg.textContent = `⚠️ Generation error.`;
+      activeBotMsg.innerHTML = `⚠️ <b>Generation error:</b> Please clear chat and try again.`;
     } finally {
       input.disabled = false;
       sendBtn.disabled = false;
