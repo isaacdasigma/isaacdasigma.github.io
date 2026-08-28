@@ -219,7 +219,7 @@
 
       updateStatus(`● Ready (${deviceType.toUpperCase()})`, 100);
       enableChat();
-      appendBotMessage("<b>Engine Online!</b> Safeguards active and markdown rendering enabled. My name is Kris AI.");
+      appendBotMessage("<b>Engine Online!</b> Chat Template rendering fixed. My name is Kris AI.");
     } catch (err) {
       console.warn("GPU failed, using WASM...", err);
       generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
@@ -245,7 +245,7 @@
 
     if (!text || !generator) return;
 
-    // 1. Sanitize input to prevent prompt injection
+    // Sanitize input to prevent prompt injection
     text = sanitizeChatML(text);
 
     const chatBox = document.getElementById("chatBox");
@@ -260,7 +260,7 @@
 
     updateMemory(text);
 
-    // 2. Expand context memory depth from 2 to 8 messages (4 full conversational turns)
+    // Expand context memory depth from 2 to 8 messages (4 full conversational turns)
     history.push({ role: 'user', content: text });
     if (history.length > 8) history = history.slice(-8);
 
@@ -274,11 +274,11 @@
       systemInstructions += "\nCorrections:\n" + learnedFacts.join("\n");
     }
 
-    let chatMLPrompt = `<|im_start|>system\n${systemInstructions}<|im_end|>\n`;
-    for (const item of history) {
-      chatMLPrompt += `<|im_start|>${item.role}\n${item.content}<|im_end|>\n`;
-    }
-    chatMLPrompt += `<|im_start|>assistant\n`;
+    // THE FIX: Construct a messages array instead of a raw ChatML string
+    const messages = [
+      { role: 'system', content: systemInstructions },
+      ...history
+    ];
 
     let responseText = "";
 
@@ -288,22 +288,23 @@
         skip_special_tokens: true,
         callback_function: (chunk) => {
           responseText += chunk;
-          // 3. Render streamed response using Marked.js + DOMPurify
+          // Render streamed response using Marked.js + DOMPurify
           activeBotMsg.innerHTML = DOMPurify.sanitize(marked.parse(responseText));
           chatBox.scrollTop = chatBox.scrollHeight;
         }
       });
 
-      await generator(chatMLPrompt, {
-        max_new_tokens: 150, // Slightly increased token limit for richer answers
+      // Pass the messages array directly to the generator
+      await generator(messages, {
+        max_new_tokens: 150, 
         do_sample: true,
         temperature: 0.2,
         top_p: 0.85,
         repetition_penalty: 1.15,
-        stop: ['<|im_end|>', '<|endoftext|>'],
         streamer: streamer
       });
 
+      // Clean up artifacts if any slip through, and finalize formatting
       responseText = responseText.replace(/<\|im_end\|>/g, '').trim();
       activeBotMsg.innerHTML = DOMPurify.sanitize(marked.parse(responseText));
 
