@@ -3,19 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Zero Crash Edition</title>
+  <title>Kris AI 16.0 - Megamind Brain Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
-      --bg: #0b0f19;
-      --panel: #151d2a;
-      --header: #0f172a;
+      --bg: #070a12;
+      --panel: #0f172a;
+      --header: #020617;
       --accent: #38bdf8;
+      --glow: #818cf8;
       --text: #f8fafc;
       --subtext: #94a3b8;
-      --user-msg: #0284c7;
-      --bot-msg: #243144;
-      --border: rgba(255, 255, 255, 0.1);
+      --user-msg: #4338ca;
+      --bot-msg: #1e1b4b;
+      --border: rgba(129, 140, 248, 0.2);
     }
 
     body {
@@ -39,22 +40,22 @@
       border-radius: 20px;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      box-shadow: 0 0 40px rgba(56, 189, 248, 0.15);
       overflow: hidden;
       border: 1px solid var(--border);
     }
 
     .chat-header {
       background: var(--header);
-      padding: 12px 16px;
+      padding: 14px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--border);
     }
 
-    .header-info h4 { margin: 0; font-size: 15px; color: var(--text); }
-    .header-info p { margin: 2px 0 0; font-size: 11px; color: var(--accent); }
+    .header-info h4 { margin: 0; font-size: 15px; color: var(--accent); letter-spacing: 0.5px; }
+    .header-info p { margin: 2px 0 0; font-size: 11px; color: var(--glow); }
 
     .progress-container {
       width: 100%;
@@ -64,7 +65,7 @@
     .progress-bar {
       width: 0%;
       height: 100%;
-      background: var(--accent);
+      background: linear-gradient(90deg, var(--accent), var(--glow));
       transition: width 0.1s linear;
     }
 
@@ -88,7 +89,7 @@
     }
 
     .user { align-self: flex-end; background: var(--user-msg); color: #fff; border-bottom-right-radius: 4px; }
-    .bot { align-self: flex-start; background: var(--bot-msg); color: var(--text); border-bottom-left-radius: 4px; }
+    .bot { align-self: flex-start; background: var(--bot-msg); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
 
     .input-area { display: flex; padding: 12px 14px; background: var(--header); gap: 8px; }
     
@@ -104,15 +105,15 @@
     }
 
     button.send-btn {
-      padding: 12px 18px;
-      background: var(--accent);
+      padding: 12px 20px;
+      background: linear-gradient(135deg, var(--accent), var(--glow));
       color: #0f172a;
       border: none;
       border-radius: 24px;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
     }
-    button.send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -120,10 +121,10 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 14.1 (Zero Crash)</h4>
-      <p id="engineStatus">● Initializing...</p>
+      <h4>Kris AI 16.0 (Mega-Brain Edition)</h4>
+      <p id="engineStatus">● Igniting Mega-Mind...</p>
     </div>
-    <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearChat()">🧹 Clear</button>
+    <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearChat()">🧹 Clear Memory</button>
   </div>
 
   <div class="progress-container">
@@ -133,24 +134,22 @@
   <div class="chat-box" id="chatBox"></div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Loading low-RAM engine..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Charging intellect..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
     <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
   </div>
 </div>
 
 <script type="module">
-  import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers';
+  import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
 
   env.allowLocalModels = false;
   env.useBrowserCache = true;
 
-  // Single WASM thread prevents browser memory heap crashes in CodeSandbox
   if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
     env.backends.onnx.wasm.numThreads = 1;
   }
 
   let generator = null;
-  let activeBotMsg = null;
   let history = [];
 
   function updateStatus(text, progress = 0) {
@@ -172,45 +171,32 @@
   window.clearChat = function() {
     history = [];
     document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Memory cleared! What can I help you with?");
+    appendBotMessage("Memory wiped clean! Ready to unleash theatrical genius upon your next request.");
   };
 
   async function initEngine() {
-    let preferredDevice = !!navigator.gpu ? 'webgpu' : 'wasm';
-    updateStatus(`● Loading 135M Model (${preferredDevice.toUpperCase()})...`, 15);
+    updateStatus(`● Syphoning Neural Weights...`, 20);
 
     try {
-      // 135M model fits safely in CodeSandbox RAM (<200MB execution memory)
       generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
-        device: preferredDevice,
+        device: 'wasm',
         dtype: 'q4',
         progress_callback: (p) => {
           if (p.status === 'progress') {
-            updateStatus(`● Fetching Weights (${Math.round(p.progress || 0)}%)...`, Math.round(p.progress || 0));
+            updateStatus(`● Expanding Brain Capacity (${Math.round(p.progress || 0)}%)...`, Math.round(p.progress || 0));
           }
         }
       });
-    } catch (err) {
-      console.warn("WebGPU init failed, switching to WASM fallback...", err);
-      try {
-        preferredDevice = 'wasm';
-        updateStatus(`● Loading WASM mode...`, 50);
-        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
-          device: 'wasm',
-          dtype: 'q4'
-        });
-      } catch (wasmErr) {
-        updateStatus(`⚠️ Engine Error`);
-        appendBotMessage(`<b>Error initializing engine:</b> ${wasmErr.message}`);
-        return;
-      }
-    }
 
-    updateStatus(`● Ready (${preferredDevice.toUpperCase()})`, 100);
-    document.getElementById('userInput').disabled = false;
-    document.getElementById('sendBtn').disabled = false;
-    document.getElementById('userInput').placeholder = 'Type a message...';
-    appendBotMessage("<b>Engine Ready!</b><br>Lightweight 135M engine running with greedy decoding for zero crashes and focused answers.");
+      updateStatus(`● Mega-Mind Fully Operational`, 100);
+      document.getElementById('userInput').disabled = false;
+      document.getElementById('sendBtn').disabled = false;
+      document.getElementById('userInput').placeholder = 'Query the master mind...';
+      appendBotMessage("<b>PRESENTATION IS EVERYTHING!</b><br>I am Kris AI—super-genius extraodinaire. Challenge my intellect with any query!");
+    } catch (err) {
+      updateStatus(`⚠️ Brain Overload Error`);
+      appendBotMessage(`<b>System Failure:</b> ${err.message || err}`);
+    }
   }
 
   window.sendMessage = async function() {
@@ -230,41 +216,57 @@
     input.disabled = true;
     sendBtn.disabled = true;
 
-    // Retain only last 4 chat turns to cap context memory expansion
     history.push({ role: 'user', content: text });
-    if (history.length > 4) history = history.slice(-4);
+    if (history.length > 2) history = history.slice(-2);
 
-    activeBotMsg = document.createElement("div");
+    const activeBotMsg = document.createElement("div");
     activeBotMsg.className = "message bot";
+    activeBotMsg.textContent = "Processing with supreme intellect...";
     chatBox.appendChild(activeBotMsg);
 
+    const systemPrompt = `You are Kris AI, a theatrical, hyper-intelligent super-genius with dramatic flair and unmatched confidence. 
+Give sharp, masterfully clever, and precise answers. Never repeat sentences or phrases. Always stay crisp, articulate, and impressive.`;
+
     const messages = [
-      { role: 'system', content: 'You are Kris AI, a clear and direct assistant. Respond accurately to questions and math without going off-topic.' },
+      { role: 'system', content: systemPrompt },
       ...history
     ];
 
     let responseText = "";
 
-    const streamer = new TextStreamer(generator.tokenizer, {
-      skip_prompt: true,
-      skip_special_tokens: true,
-      callback_function: (chunk) => {
-        responseText += chunk;
-        activeBotMsg.textContent = responseText;
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }
-    });
-
     try {
-      await generator(messages, {
-        max_new_tokens: 150,
-        do_sample: false, // Disables sampling randomness to stop incoherent rambling
+      const streamer = new TextStreamer(generator.tokenizer, {
+        skip_prompt: true,
+        skip_special_tokens: true,
+        callback_function: (chunk) => {
+          responseText += chunk;
+          activeBotMsg.textContent = responseText;
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      });
+
+      const output = await generator(messages, {
+        max_new_tokens: 260,
+        do_sample: true,
+        temperature: 0.65,
+        top_p: 0.92,
+        repetition_penalty: 1.35,
+        no_repeat_ngram_size: 3,
         streamer: streamer
       });
 
+      if (!responseText && output && output[0]) {
+        const generatedText = output[0].generated_text;
+        responseText = Array.isArray(generatedText) 
+          ? generatedText[generatedText.length - 1].content 
+          : String(generatedText);
+        activeBotMsg.textContent = responseText;
+      }
+
       history.push({ role: 'assistant', content: responseText.trim() });
     } catch (e) {
-      activeBotMsg.textContent = "⚠️ Error generating response.";
+      console.error(e);
+      activeBotMsg.textContent = `⚠️ Intellectual hiccup: Failed to execute response.`;
     } finally {
       input.disabled = false;
       sendBtn.disabled = false;
