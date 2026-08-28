@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 16.0 - Megamind Brain Edition</title>
+  <title>Kris AI 16.1 - Speed Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -54,7 +54,7 @@
       border-bottom: 1px solid var(--border);
     }
 
-    .header-info h4 { margin: 0; font-size: 15px; color: var(--accent); letter-spacing: 0.5px; }
+    .header-info h4 { margin: 0; font-size: 15px; color: var(--accent); }
     .header-info p { margin: 2px 0 0; font-size: 11px; color: var(--glow); }
 
     .progress-container {
@@ -121,10 +121,10 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 16.0 (Mega-Brain Edition)</h4>
-      <p id="engineStatus">● Igniting Mega-Mind...</p>
+      <h4>Kris AI 16.1 (Turbo Edition)</h4>
+      <p id="engineStatus">● Initializing Turbo Engine...</p>
     </div>
-    <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearChat()">🧹 Clear Memory</button>
+    <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearChat()">🧹 Clear</button>
   </div>
 
   <div class="progress-container">
@@ -134,7 +134,7 @@
   <div class="chat-box" id="chatBox"></div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Charging intellect..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Warming up..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
     <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
   </div>
 </div>
@@ -171,11 +171,11 @@
   window.clearChat = function() {
     history = [];
     document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Memory wiped clean! Ready to unleash theatrical genius upon your next request.");
+    appendBotMessage("Memory cleared!");
   };
 
   async function initEngine() {
-    updateStatus(`● Syphoning Neural Weights...`, 20);
+    updateStatus(`● Loading 135M Model...`, 20);
 
     try {
       generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
@@ -183,19 +183,19 @@
         dtype: 'q4',
         progress_callback: (p) => {
           if (p.status === 'progress') {
-            updateStatus(`● Expanding Brain Capacity (${Math.round(p.progress || 0)}%)...`, Math.round(p.progress || 0));
+            updateStatus(`● Fetching Model (${Math.round(p.progress || 0)}%)...`, Math.round(p.progress || 0));
           }
         }
       });
 
-      updateStatus(`● Mega-Mind Fully Operational`, 100);
+      updateStatus(`● Ready (Turbo WASM)`, 100);
       document.getElementById('userInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
-      document.getElementById('userInput').placeholder = 'Query the master mind...';
-      appendBotMessage("<b>PRESENTATION IS EVERYTHING!</b><br>I am Kris AI—super-genius extraodinaire. Challenge my intellect with any query!");
+      document.getElementById('userInput').placeholder = 'Type a message...';
+      appendBotMessage("<b>Engine Ready!</b> High-speed decoding active.");
     } catch (err) {
-      updateStatus(`⚠️ Brain Overload Error`);
-      appendBotMessage(`<b>System Failure:</b> ${err.message || err}`);
+      updateStatus(`⚠️ Initialization Error`);
+      appendBotMessage(`<b>Error:</b> ${err.message || err}`);
     }
   }
 
@@ -216,19 +216,18 @@
     input.disabled = true;
     sendBtn.disabled = true;
 
+    // Keep history extremely minimal to speed up context prefill
     history.push({ role: 'user', content: text });
     if (history.length > 2) history = history.slice(-2);
 
     const activeBotMsg = document.createElement("div");
     activeBotMsg.className = "message bot";
-    activeBotMsg.textContent = "Processing with supreme intellect...";
+    activeBotMsg.textContent = "...";
     chatBox.appendChild(activeBotMsg);
 
-    const systemPrompt = `You are Kris AI, a theatrical, hyper-intelligent super-genius with dramatic flair and unmatched confidence. 
-Give sharp, masterfully clever, and precise answers. Never repeat sentences or phrases. Always stay crisp, articulate, and impressive.`;
-
+    // Compact system prompt reduces input processing time dramatically
     const messages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: 'You are Kris AI, a witty, brilliant assistant. Be direct and brief.' },
       ...history
     ];
 
@@ -245,12 +244,13 @@ Give sharp, masterfully clever, and precise answers. Never repeat sentences or p
         }
       });
 
+      // Optimized sampling parameters for maximum WASM generation speed
       const output = await generator(messages, {
-        max_new_tokens: 260,
+        max_new_tokens: 120,
         do_sample: true,
-        temperature: 0.65,
-        top_p: 0.92,
-        repetition_penalty: 1.35,
+        temperature: 0.4,
+        top_k: 20,
+        repetition_penalty: 1.25,
         no_repeat_ngram_size: 3,
         streamer: streamer
       });
@@ -266,7 +266,7 @@ Give sharp, masterfully clever, and precise answers. Never repeat sentences or p
       history.push({ role: 'assistant', content: responseText.trim() });
     } catch (e) {
       console.error(e);
-      activeBotMsg.textContent = `⚠️ Intellectual hiccup: Failed to execute response.`;
+      activeBotMsg.textContent = `⚠️ Generation error.`;
     } finally {
       input.disabled = false;
       sendBtn.disabled = false;
