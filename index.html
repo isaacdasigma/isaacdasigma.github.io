@@ -1,176 +1,102 @@
-import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
-
-env.allowLocalModels = false;
-env.useBrowserCache = true;
-
-let generator = null;
-let history = [];
-let learnedFacts = [];
-
-function updateStatus(text, progress = 0) {
-  document.getElementById('engineStatus').textContent = text;
-  if (progress >= 0) document.getElementById('progressBar').style.width = `${progress}%`;
-}
-
-function renderFormattedText(text) {
-  // Clean out control tags if any leak through stream
-  const clean = text.replace(/<\|im_end\|>|<\|im_start\|>|<\|endoftext\|>/g, '').trim();
-  return DOMPurify.sanitize(clean.replace(/\n/g, '<br>'));
-}
-
-function appendBotMessage(text) {
-  const chatBox = document.getElementById("chatBox");
-  const msg = document.createElement("div");
-  msg.className = "message bot";
-  msg.innerHTML = renderFormattedText(text);
-  chatBox.appendChild(msg);
-  chatBox.scrollTop = chatBox.scrollHeight;
-  return msg;
-}
-
-window.clearChat = function() {
-  history = [];
-  learnedFacts = [];
-  document.getElementById("memCount").textContent = "🧠 Memory: 0";
-  document.getElementById("chatBox").innerHTML = '';
-  appendBotMessage("Memory reset! I am Kris AI.");
-};
-
-function updateMemory(userText) {
-  const triggerPattern = /(wrong|incorrect|actually|no,|remember|my name is)/i;
-  if (triggerPattern.test(userText)) {
-    learnedFacts.push(userText);
-    if (learnedFacts.length > 3) learnedFacts.shift();
-    document.getElementById("memCount").textContent = `🧠 Memory: ${learnedFacts.length}`;
-  }
-}
-
-async function initEngine() {
-  updateStatus(`● Initializing Hardware...`, 10);
-  let deviceType = navigator.gpu ? 'webgpu' : 'wasm';
-
-  // Using 360M model for significantly better instruction adherence
-  const modelName = 'onnx-community/SmolLM2-360M-Instruct-ONNX';
-
-  try {
-    generator = await pipeline('text-generation', modelName, {
-      device: deviceType,
-      dtype: 'q4',
-      progress_callback: (p) => {
-        if (p.status === 'progress') {
-          const pct = Math.round(p.progress || 0);
-          updateStatus(`● Loading AI Engine (${pct}%)...`, pct);
-        }
-      }
-    });
-
-    updateStatus(`● Ready (${deviceType.toUpperCase()})`, 100);
-    enableInputs();
-    appendBotMessage(`<b>Kris AI Ready (${deviceType.toUpperCase()})!</b><br>How can I help you today?`);
-  } catch (err) {
-    console.warn("Primary engine load failed, switching to WASM fallback...", err);
-    try {
-      generator = await pipeline('text-generation', modelName, {
-        device: 'wasm',
-        dtype: 'q4'
-      });
-      updateStatus(`● Ready (WASM CPU Mode)`, 100);
-      enableInputs();
-      appendBotMessage("<b>Kris AI Ready (WASM CPU Mode)</b>");
-    } catch (fallbackErr) {
-      console.error(fallbackErr);
-      updateStatus("● Engine Error", 0);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kris AI 20.0 - Browser LLM Edition</title>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+  <style>
+    :root {
+      --bg: #070a12;
+      --panel: #0f172a;
+      --header: #020617;
+      --accent: #38bdf8;
+      --glow: #818cf8;
+      --text: #f8fafc;
+      --subtext: #94a3b8;
+      --user-msg: #4338ca;
+      --bot-msg: #1e1b4b;
+      --border: rgba(129, 140, 248, 0.2);
     }
-  }
-}
 
-function enableInputs() {
-  document.getElementById('userInput').disabled = false;
-  document.getElementById('sendBtn').disabled = false;
-  document.getElementById('userInput').placeholder = 'Type a message...';
-  document.getElementById('userInput').focus();
-}
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 10px;
+      box-sizing: border-box;
+    }
 
-window.sendMessage = async function() {
-  const input = document.getElementById("userInput");
-  const sendBtn = document.getElementById("sendBtn");
-  const text = input.value.trim();
+    .chat-container {
+      width: 100%;
+      max-width: 680px;
+      height: 94vh;
+      background: var(--panel);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 40px rgba(56, 189, 248, 0.15);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
 
-  if (!text || !generator) return;
+    .chat-header {
+      background: var(--header);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
 
-  const chatBox = document.getElementById("chatBox");
+    .header-info h4 { margin: 0; font-size: 15px; color: var(--accent); }
+    .header-info p { margin: 2px 0 0; font-size: 11px; color: var(--glow); }
 
-  const userMsg = document.createElement("div");
-  userMsg.className = "message user";
-  userMsg.textContent = text;
-  chatBox.appendChild(userMsg);
+    .memory-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: rgba(129, 140, 248, 0.2);
+      color: var(--glow);
+      border: 1px solid var(--border);
+    }
 
-  input.value = "";
-  input.disabled = true;
-  sendBtn.disabled = true;
+    .btn-clear {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--subtext);
+      border-radius: 8px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .btn-clear:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
 
-  updateMemory(text);
+    .progress-container { width: 100%; background: rgba(255,255,255,0.05); height: 4px; }
+    .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--glow)); transition: width 0.1s linear; }
 
-  history.push({ role: 'user', content: text });
-  if (history.length > 4) history = history.slice(-4);
+    .chat-box { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
 
-  const activeBotMsg = document.createElement("div");
-  activeBotMsg.className = "message bot";
-  activeBotMsg.textContent = "...";
-  chatBox.appendChild(activeBotMsg);
+    .message {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
 
-  // Strict System Prompt
-  let systemPrompt = "You are Kris AI, a helpful and concise AI assistant. Always answer directly and keep responses short.";
-  if (learnedFacts.length > 0) {
-    systemPrompt += "\nNotes to remember:\n- " + learnedFacts.join("\n- ");
-  }
+    .user { align-self: flex-end; background: var(--user-msg); color: #fff; border-bottom-right-radius: 4px; }
+    .bot { align-self: flex-start; background: var(--bot-msg); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
 
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...history
-  ];
-
-  let responseText = "";
-
-  try {
-    const formattedPrompt = await generator.tokenizer.apply_chat_template(messages, {
-      tokenize: false,
-      add_generation_prompt: true,
-    });
-
-    const streamer = new TextStreamer(generator.tokenizer, {
-      skip_prompt: true,
-      skip_special_tokens: true,
-      callback_function: (chunk) => {
-        // Stop streaming if the model emits stop markers
-        if (chunk.includes('<|im_end|>')) return;
-        responseText += chunk;
-        activeBotMsg.innerHTML = renderFormattedText(responseText);
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }
-    });
-
-    await generator(formattedPrompt, {
-      max_new_tokens: 100,
-      do_sample: true,
-      temperature: 0.3, // Lower temperature keeps answers grounded
-      top_p: 0.9,
-      repetition_penalty: 1.2,
-      streamer: streamer
-    });
-
-    const finalContent = responseText.replace(/<\|im_end\|>.*$/s, '').trim() || "I am Kris AI. How can I assist you?";
-    activeBotMsg.innerHTML = renderFormattedText(finalContent);
-    history.push({ role: 'assistant', content: finalContent });
-
-  } catch (e) {
-    console.error(e);
-    activeBotMsg.textContent = `⚠️ Engine execution error.`;
-  } finally {
-    input.disabled = false;
-    sendBtn.disabled = false;
-    input.focus();
-  }
-};
-
-initEngine();
+    .input-area { display: flex; padding: 12px 14px;
