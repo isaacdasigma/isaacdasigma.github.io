@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 14.1 - Zero Crash Edition</title>
+  <title>Kris AI 14.1 - Fast Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -120,7 +120,7 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 14.1 (Zero Crash)</h4>
+      <h4>Kris AI 14.1 (High Speed)</h4>
       <p id="engineStatus">● Initializing...</p>
     </div>
     <button type="button" style="background:none;border:1px solid var(--border);color:var(--subtext);border-radius:6px;padding:4px 8px;cursor:pointer;" onclick="clearChat()">🧹 Clear</button>
@@ -133,7 +133,7 @@
   <div class="chat-box" id="chatBox"></div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Loading low-RAM engine..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Loading engine..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
     <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
   </div>
 </div>
@@ -144,9 +144,10 @@
   env.allowLocalModels = false;
   env.useBrowserCache = true;
 
-  // Single WASM thread prevents browser memory crashes on ChromeOS
+  // Use multi-threading for WASM fallback based on hardware CPU core count
   if (env.backends && env.backends.onnx && env.backends.onnx.wasm) {
-    env.backends.onnx.wasm.numThreads = 1;
+    const cores = navigator.hardwareConcurrency || 4;
+    env.backends.onnx.wasm.numThreads = Math.min(cores, 4);
   }
 
   let generator = null;
@@ -175,11 +176,15 @@
   };
 
   async function initEngine() {
-    updateStatus(`● Loading Model (WASM Mode)...`, 15);
+    // Automatically use WebGPU if available for maximum speed, otherwise fall back to WASM
+    const hasWebGPU = !!navigator.gpu;
+    const device = hasWebGPU ? 'webgpu' : 'wasm';
+    
+    updateStatus(`● Loading Model (${device.toUpperCase()} Mode)...`, 15);
 
     try {
       generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
-        device: 'wasm',
+        device: device,
         dtype: 'q4',
         progress_callback: (p) => {
           if (p.status === 'progress') {
@@ -188,11 +193,11 @@
         }
       });
 
-      updateStatus(`● Ready (WASM)`, 100);
+      updateStatus(`● Ready (${device.toUpperCase()})`, 100);
       document.getElementById('userInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('userInput').placeholder = 'Type a message...';
-      appendBotMessage("<b>Engine Ready!</b><br>Kris AI tuned for direct and detailed answers.");
+      appendBotMessage(`<b>Engine Ready!</b><br>Running on <b>${device.toUpperCase()}</b> for maximum speed.`);
     } catch (err) {
       updateStatus(`⚠️ Engine Error`);
       appendBotMessage(`<b>Error initializing engine:</b> ${err.message}`);
@@ -216,7 +221,6 @@
     input.disabled = true;
     sendBtn.disabled = true;
 
-    // Retain only last 4 chat turns to cap context memory expansion
     history.push({ role: 'user', content: text });
     if (history.length > 4) history = history.slice(-4);
 
@@ -235,7 +239,6 @@
     let responseText = "";
 
     try {
-      // Explicitly format prompt string via tokenizer chat template
       const prompt = generator.tokenizer.apply_chat_template(messages, {
         tokenize: false,
         add_generation_prompt: true
@@ -257,6 +260,7 @@
         temperature: 0.3,
         top_p: 0.9,
         repetition_penalty: 1.15,
+        use_cache: true,
         streamer: streamer
       });
 
