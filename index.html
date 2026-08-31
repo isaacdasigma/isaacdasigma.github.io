@@ -91,7 +91,7 @@
     .bot { align-self: flex-start; background: var(--bot-msg); color: var(--text); border-bottom-left-radius: 4px; }
 
     .input-area { display: flex; padding: 12px 14px; background: var(--header); gap: 8px; }
-    
+
     input[type="text"] {
       flex: 1;
       padding: 12px 16px;
@@ -175,7 +175,7 @@
   };
 
   async function initEngine() {
-    updateStatus(`● Loading 135M Model (WASM Mode)...`, 15);
+    updateStatus(`● Loading Model (WASM Mode)...`, 15);
 
     try {
       generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
@@ -192,7 +192,7 @@
       document.getElementById('userInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('userInput').placeholder = 'Type a message...';
-      appendBotMessage("<b>Engine Ready!</b><br>Lightweight WASM engine running with greedy decoding for Chromebook stability.");
+      appendBotMessage("<b>Engine Ready!</b><br>Kris AI tuned for direct and detailed answers.");
     } catch (err) {
       updateStatus(`⚠️ Engine Error`);
       appendBotMessage(`<b>Error initializing engine:</b> ${err.message}`);
@@ -225,7 +225,10 @@
     chatBox.appendChild(activeBotMsg);
 
     const messages = [
-      { role: 'system', content: 'You are Kris AI, a clear and direct assistant. Respond accurately to questions and math without going off-topic.' },
+      { 
+        role: 'system', 
+        content: 'You are Kris AI, a precise assistant. Provide concise, step-by-step, and specific answers with concrete facts. Avoid vague summaries, generic pleasantries, or broad statements.' 
+      },
       ...history
     ];
 
@@ -249,8 +252,11 @@
       });
 
       await generator(prompt, {
-        max_new_tokens: 150,
-        do_sample: false,
+        max_new_tokens: 300,
+        do_sample: true,
+        temperature: 0.3,
+        top_p: 0.9,
+        repetition_penalty: 1.15,
         streamer: streamer
       });
 
