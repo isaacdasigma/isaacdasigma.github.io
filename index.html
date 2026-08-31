@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 20.0</title>
+  <title>Kris AI 20.0 - Low Memory Edition</title>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
   <style>
     :root {
@@ -134,8 +134,8 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 20.0</h4>
-      <p id="engineStatus">● Initializing GPU Core...</p>
+      <h4>Kris AI 20.0 (Chromebook Safe)</h4>
+      <p id="engineStatus">● Initializing...</p>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
       <span id="memCount" class="memory-badge">🧠 Memory: 0</span>
@@ -152,7 +152,7 @@
   </div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Initializing AI model..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
+    <input type="text" id="userInput" placeholder="Initializing light AI..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
     <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
   </div>
 </div>
@@ -162,6 +162,7 @@
 
   env.allowLocalModels = false;
   env.useBrowserCache = true;
+  env.wasm.numThreads = 1; // Reduces CPU throttling crashes on Chrome OS
 
   let generator = null;
   let history = [];
@@ -170,7 +171,7 @@
   function showError(msg) {
     const banner = document.getElementById('errorBanner');
     banner.style.display = 'block';
-    banner.innerHTML = `⚠️ <b>Error:</b> ${msg}<br><br><small>If opening as a local file, please run via a web server (e.g., Live Server or python -m http.server).</small>`;
+    banner.innerHTML = `⚠️ <b>Error:</b> ${msg}`;
   }
 
   function updateStatus(text, progress = 0) {
@@ -198,60 +199,49 @@
     learnedFacts = [];
     document.getElementById("memCount").textContent = "🧠 Memory: 0";
     document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Memory reset! I am Kris AI.");
+    appendBotMessage("Memory cleared. I am Kris AI.");
   };
 
   function updateMemory(userText) {
     const triggerPattern = /(wrong|incorrect|actually|no,|remember|my name is)/i;
     if (triggerPattern.test(userText)) {
       learnedFacts.push(userText);
-      if (learnedFacts.length > 3) learnedFacts.shift();
+      if (learnedFacts.length > 2) learnedFacts.shift();
       document.getElementById("memCount").textContent = `🧠 Memory: ${learnedFacts.length}`;
     }
   }
 
   async function initEngine() {
-    updateStatus(`● Initializing Hardware...`, 10);
+    updateStatus(`● Initializing...`, 10);
 
     if (window.location.protocol === 'file:') {
-      showError("Local file detected! Browsers block Web AI models on local files.");
-      updateStatus("● Error: Cannot run on file://", 0);
+      showError("Must be run through a web server (e.g., Live Server or Github Pages).");
+      updateStatus("● Error", 0);
       return;
     }
 
-    let deviceType = navigator.gpu ? 'webgpu' : 'wasm';
-    const modelName = 'onnx-community/SmolLM2-360M-Instruct-ONNX';
+    // Force 135M ultra-compact model to prevent RAM overflow crashes
+    const modelName = 'onnx-community/SmolLM2-135M-Instruct-ONNX';
 
     try {
       generator = await pipeline('text-generation', modelName, {
-        device: deviceType,
+        device: 'wasm', // CPU WASM is most stable across managed Chromebooks
         dtype: 'q4',
         progress_callback: (p) => {
           if (p.status === 'progress') {
             const pct = Math.round(p.progress || 0);
-            updateStatus(`● Loading Engine (${pct}%)...`, pct);
+            updateStatus(`● Loading Light Engine (${pct}%)...`, pct);
           }
         }
       });
 
-      updateStatus(`● Ready (${deviceType.toUpperCase()})`, 100);
+      updateStatus(`● Ready (Low RAM Mode)`, 100);
       enableInputs();
-      appendBotMessage(`<b>Kris AI Ready (${deviceType.toUpperCase()})!</b><br>How can I help you today?`);
+      appendBotMessage(`<b>Kris AI Ready!</b><br>Optimized for low-spec devices.`);
     } catch (err) {
-      console.warn("Primary engine load failed, switching to WASM fallback...", err);
-      try {
-        generator = await pipeline('text-generation', modelName, {
-          device: 'wasm',
-          dtype: 'q4'
-        });
-        updateStatus(`● Ready (WASM CPU Mode)`, 100);
-        enableInputs();
-        appendBotMessage("<b>Kris AI Ready (WASM CPU Mode)</b>");
-      } catch (fallbackErr) {
-        console.error(fallbackErr);
-        showError(fallbackErr.message || "Failed to load ONNX model.");
-        updateStatus("● Engine Error", 0);
-      }
+      console.error(err);
+      showError("Failed to load AI model. Check if school Wi-Fi blocks Hugging Face/CDN.");
+      updateStatus("● Engine Error", 0);
     }
   }
 
@@ -281,17 +271,18 @@
 
     updateMemory(text);
 
+    // Keep history extremely small to conserve memory
     history.push({ role: 'user', content: text });
-    if (history.length > 4) history = history.slice(-4);
+    if (history.length > 2) history = history.slice(-2);
 
     const activeBotMsg = document.createElement("div");
     activeBotMsg.className = "message bot";
     activeBotMsg.textContent = "...";
     chatBox.appendChild(activeBotMsg);
 
-    let systemPrompt = "You are Kris AI, a helpful and concise AI assistant. Always answer directly and keep responses short.";
+    let systemPrompt = "You are Kris AI. Give short, direct answers.";
     if (learnedFacts.length > 0) {
-      systemPrompt += "\nNotes to remember:\n- " + learnedFacts.join("\n- ");
+      systemPrompt += "\nMemory: " + learnedFacts.join("; ");
     }
 
     const messages = [
@@ -318,22 +309,21 @@
         }
       });
 
+      // Strict limit on generation length to prevent browser freeze
       await generator(formattedPrompt, {
-        max_new_tokens: 100,
-        do_sample: true,
-        temperature: 0.3,
-        top_p: 0.9,
-        repetition_penalty: 1.2,
+        max_new_tokens: 60,
+        do_sample: false, // Greedy decoding consumes significantly less CPU power
+        repetition_penalty: 1.1,
         streamer: streamer
       });
 
-      const finalContent = responseText.replace(/<\|im_end\|>.*$/s, '').trim() || "I am Kris AI. How can I assist you?";
+      const finalContent = responseText.replace(/<\|im_end\|>.*$/s, '').trim() || "I am Kris AI.";
       activeBotMsg.innerHTML = renderFormattedText(finalContent);
       history.push({ role: 'assistant', content: finalContent });
 
     } catch (e) {
       console.error(e);
-      activeBotMsg.textContent = `⚠️ Engine execution error.`;
+      activeBotMsg.textContent = `⚠️ Low memory limit reached.`;
     } finally {
       input.disabled = false;
       sendBtn.disabled = false;
