@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 20.0 - Low Memory Edition</title>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+  <title>Kris AI 20.0 - Cloud Edition</title>
   <style>
     :root {
       --bg: #070a12;
@@ -43,6 +42,7 @@
       box-shadow: 0 0 40px rgba(56, 189, 248, 0.15);
       overflow: hidden;
       border: 1px solid var(--border);
+      position: relative;
     }
 
     .chat-header {
@@ -57,27 +57,23 @@
     .header-info h4 { margin: 0; font-size: 15px; color: var(--accent); }
     .header-info p { margin: 2px 0 0; font-size: 11px; color: var(--glow); }
 
-    .memory-badge {
-      font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      background: rgba(129, 140, 248, 0.2);
-      color: var(--glow);
-      border: 1px solid var(--border);
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .btn-clear {
-      background: none;
+    .btn-action {
+      background: rgba(129, 140, 248, 0.1);
       border: 1px solid var(--border);
-      color: var(--subtext);
+      color: var(--text);
       border-radius: 8px;
-      padding: 4px 10px;
+      padding: 6px 12px;
       cursor: pointer;
       font-size: 12px;
+      transition: all 0.2s;
     }
-
-    .progress-container { width: 100%; background: rgba(255,255,255,0.05); height: 4px; }
-    .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--glow)); transition: width 0.1s linear; }
+    .btn-action:hover { background: rgba(129, 140, 248, 0.25); }
 
     .chat-box { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
 
@@ -106,6 +102,7 @@
       color: var(--text);
       font-size: 14px;
     }
+    input[type="text"]:focus { border-color: var(--accent); }
 
     button.send-btn {
       padding: 12px 20px;
@@ -118,14 +115,37 @@
     }
     button.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .error-banner {
-      background: #7f1d1d;
-      color: #fecaca;
-      padding: 10px;
-      font-size: 12px;
-      border-radius: 8px;
-      margin-bottom: 10px;
+    /* Key Setup Modal */
+    .modal-overlay {
       display: none;
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(2, 6, 23, 0.85);
+      backdrop-filter: blur(4px);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    .modal-box {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 24px;
+      border-radius: 16px;
+      width: 85%;
+      max-width: 420px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+    .modal-box h3 { margin: 0 0 8px; color: var(--accent); font-size: 16px; }
+    .modal-box p { font-size: 12px; color: var(--subtext); line-height: 1.4; margin-bottom: 12px; }
+    .modal-box input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--header);
+      color: var(--text);
+      box-sizing: border-box;
+      margin-bottom: 14px;
     }
   </style>
 </head>
@@ -134,204 +154,145 @@
 <div class="chat-container">
   <div class="chat-header">
     <div class="header-info">
-      <h4>Kris AI 20.0 (Chromebook Safe)</h4>
-      <p id="engineStatus">● Initializing...</p>
+      <h4>Kris AI 20.0</h4>
+      <p id="engineStatus">● Cloud API Mode (Zero RAM)</p>
     </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span id="memCount" class="memory-badge">🧠 Memory: 0</span>
-      <button type="button" class="btn-clear" onclick="clearChat()">🧹 Clear</button>
+    <div class="header-controls">
+      <button type="button" class="btn-action" onclick="openKeyModal()">🔑 API Key</button>
+      <button type="button" class="btn-action" onclick="clearChat()">🧹 Clear</button>
     </div>
   </div>
 
-  <div class="progress-container">
-    <div class="progress-bar" id="progressBar"></div>
-  </div>
-
-  <div class="chat-box" id="chatBox">
-    <div id="errorBanner" class="error-banner"></div>
-  </div>
+  <div class="chat-box" id="chatBox"></div>
 
   <div class="input-area">
-    <input type="text" id="userInput" placeholder="Initializing light AI..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
-    <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
+    <input type="text" id="userInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendMessage()">
+    <button type="button" class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+  </div>
+
+  <div class="modal-overlay" id="keyModal">
+    <div class="modal-box">
+      <h3>Set Free Cloud API Key</h3>
+      <p>Enter a free <b>Groq</b> or <b>HuggingFace</b> API key below. This allows Kris AI to answer instantly without freezing or downloading huge models to your Chromebook.</p>
+      <input type="password" id="apiKeyInput" placeholder="gsk_... or hf_...">
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" class="btn-action" onclick="closeKeyModal()">Cancel</button>
+        <button type="button" class="btn-action" style="background:var(--user-msg)" onclick="saveApiKey()">Save Key</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<script type="module">
-  import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
-
-  env.allowLocalModels = false;
-  env.useBrowserCache = true;
-  env.wasm.numThreads = 1; // Reduces CPU throttling crashes on Chrome OS
-
-  let generator = null;
+<script>
   let history = [];
-  let learnedFacts = [];
+  let apiKey = localStorage.getItem("kris_ai_key") || "";
 
-  function showError(msg) {
-    const banner = document.getElementById('errorBanner');
-    banner.style.display = 'block';
-    banner.innerHTML = `⚠️ <b>Error:</b> ${msg}`;
-  }
-
-  function updateStatus(text, progress = 0) {
-    document.getElementById('engineStatus').textContent = text;
-    if (progress >= 0) document.getElementById('progressBar').style.width = `${progress}%`;
-  }
-
-  function renderFormattedText(text) {
-    const clean = text.replace(/<\|im_end\|>|<\|im_start\|>|<\|endoftext\|>/g, '').trim();
-    return window.DOMPurify ? DOMPurify.sanitize(clean.replace(/\n/g, '<br>')) : clean;
-  }
-
-  function appendBotMessage(text) {
+  function appendMessage(text, role) {
     const chatBox = document.getElementById("chatBox");
     const msg = document.createElement("div");
-    msg.className = "message bot";
-    msg.innerHTML = renderFormattedText(text);
+    msg.className = `message ${role}`;
+    msg.innerHTML = text.replace(/\n/g, '<br>');
     chatBox.appendChild(msg);
     chatBox.scrollTop = chatBox.scrollHeight;
     return msg;
   }
 
-  window.clearChat = function() {
+  function openKeyModal() {
+    document.getElementById("apiKeyInput").value = apiKey;
+    document.getElementById("keyModal").style.display = "flex";
+  }
+
+  function closeKeyModal() {
+    document.getElementById("keyModal").style.display = "none";
+  }
+
+  function saveApiKey() {
+    apiKey = document.getElementById("apiKeyInput").value.trim();
+    localStorage.setItem("kris_ai_key", apiKey);
+    closeKeyModal();
+    appendMessage("<b>System:</b> API Key updated successfully!", "bot");
+  }
+
+  function clearChat() {
     history = [];
-    learnedFacts = [];
-    document.getElementById("memCount").textContent = "🧠 Memory: 0";
     document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Memory cleared. I am Kris AI.");
-  };
-
-  function updateMemory(userText) {
-    const triggerPattern = /(wrong|incorrect|actually|no,|remember|my name is)/i;
-    if (triggerPattern.test(userText)) {
-      learnedFacts.push(userText);
-      if (learnedFacts.length > 2) learnedFacts.shift();
-      document.getElementById("memCount").textContent = `🧠 Memory: ${learnedFacts.length}`;
-    }
+    appendMessage("<b>Kris AI Ready!</b><br>How can I help you today?", "bot");
   }
 
-  async function initEngine() {
-    updateStatus(`● Initializing...`, 10);
-
-    if (window.location.protocol === 'file:') {
-      showError("Must be run through a web server (e.g., Live Server or Github Pages).");
-      updateStatus("● Error", 0);
-      return;
-    }
-
-    // Force 135M ultra-compact model to prevent RAM overflow crashes
-    const modelName = 'onnx-community/SmolLM2-135M-Instruct-ONNX';
-
-    try {
-      generator = await pipeline('text-generation', modelName, {
-        device: 'wasm', // CPU WASM is most stable across managed Chromebooks
-        dtype: 'q4',
-        progress_callback: (p) => {
-          if (p.status === 'progress') {
-            const pct = Math.round(p.progress || 0);
-            updateStatus(`● Loading Light Engine (${pct}%)...`, pct);
-          }
-        }
-      });
-
-      updateStatus(`● Ready (Low RAM Mode)`, 100);
-      enableInputs();
-      appendBotMessage(`<b>Kris AI Ready!</b><br>Optimized for low-spec devices.`);
-    } catch (err) {
-      console.error(err);
-      showError("Failed to load AI model. Check if school Wi-Fi blocks Hugging Face/CDN.");
-      updateStatus("● Engine Error", 0);
-    }
-  }
-
-  function enableInputs() {
-    document.getElementById('userInput').disabled = false;
-    document.getElementById('sendBtn').disabled = false;
-    document.getElementById('userInput').placeholder = 'Type a message...';
-    document.getElementById('userInput').focus();
-  }
-
-  window.sendMessage = async function() {
+  async function sendMessage() {
     const input = document.getElementById("userInput");
     const sendBtn = document.getElementById("sendBtn");
-    const text = input.value.trim();
+    const userText = input.value.trim();
 
-    if (!text || !generator) return;
+    if (!userText) return;
 
-    const chatBox = document.getElementById("chatBox");
-    const userMsg = document.createElement("div");
-    userMsg.className = "message user";
-    userMsg.textContent = text;
-    chatBox.appendChild(userMsg);
-
+    appendMessage(userText, "user");
     input.value = "";
     input.disabled = true;
     sendBtn.disabled = true;
 
-    updateMemory(text);
+    history.push({ role: "user", content: userText });
+    if (history.length > 6) history = history.slice(-6);
 
-    // Keep history extremely small to conserve memory
-    history.push({ role: 'user', content: text });
-    if (history.length > 2) history = history.slice(-2);
+    const botMsg = appendMessage("Thinking...", "bot");
 
-    const activeBotMsg = document.createElement("div");
-    activeBotMsg.className = "message bot";
-    activeBotMsg.textContent = "...";
-    chatBox.appendChild(activeBotMsg);
-
-    let systemPrompt = "You are Kris AI. Give short, direct answers.";
-    if (learnedFacts.length > 0) {
-      systemPrompt += "\nMemory: " + learnedFacts.join("; ");
+    if (!apiKey) {
+      botMsg.innerHTML = "⚠️ <b>API Key Missing</b><br>Click 🔑 <b>API Key</b> at the top right and paste your free key (Groq or HuggingFace) to enable responses without crashing.";
+      input.disabled = false;
+      sendBtn.disabled = false;
+      return;
     }
 
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...history
-    ];
-
-    let responseText = "";
-
     try {
-      const formattedPrompt = await generator.tokenizer.apply_chat_template(messages, {
-        tokenize: false,
-        add_generation_prompt: true,
+      let responseText = "";
+      
+      // Supports Groq API Keys (gsk_) or standard OpenAI-compatible endpoints
+      const isGroq = apiKey.startsWith("gsk_");
+      const endpoint = isGroq 
+        ? "https://api.groq.com/openai/v1/chat/completions" 
+        : "https://api-inference.huggingface.co/v1/chat/completions";
+      
+      const modelName = isGroq ? "llama-3.1-8b-instant" : "meta-llama/Llama-3.2-3B-Instruct";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [
+            { role: "system", content: "Your name is Kris AI. Answer directly, accurately, and concisely." },
+            ...history
+          ],
+          max_tokens: 150,
+          temperature: 0.3
+        })
       });
 
-      const streamer = new TextStreamer(generator.tokenizer, {
-        skip_prompt: true,
-        skip_special_tokens: true,
-        callback_function: (chunk) => {
-          if (chunk.includes('<|im_end|>')) return;
-          responseText += chunk;
-          activeBotMsg.innerHTML = renderFormattedText(responseText);
-          chatBox.scrollTop = chatBox.scrollHeight;
-        }
-      });
+      const data = await response.json();
 
-      // Strict limit on generation length to prevent browser freeze
-      await generator(formattedPrompt, {
-        max_new_tokens: 60,
-        do_sample: false, // Greedy decoding consumes significantly less CPU power
-        repetition_penalty: 1.1,
-        streamer: streamer
-      });
+      if (data.error) {
+        throw new Error(data.error.message || JSON.stringify(data.error));
+      }
 
-      const finalContent = responseText.replace(/<\|im_end\|>.*$/s, '').trim() || "I am Kris AI.";
-      activeBotMsg.innerHTML = renderFormattedText(finalContent);
-      history.push({ role: 'assistant', content: finalContent });
+      responseText = data.choices[0].message.content.trim();
+      botMsg.innerHTML = responseText.replace(/\n/g, '<br>');
+      history.push({ role: "assistant", content: responseText });
 
-    } catch (e) {
-      console.error(e);
-      activeBotMsg.textContent = `⚠️ Low memory limit reached.`;
+    } catch (err) {
+      console.error(err);
+      botMsg.innerHTML = `⚠️ <b>Connection Error:</b> ${err.message}`;
     } finally {
       input.disabled = false;
       sendBtn.disabled = false;
       input.focus();
     }
-  };
+  }
 
-  initEngine();
+  // Initial greeting
+  appendMessage("<b>Kris AI Ready (Cloud Mode)!</b><br>Runs instantly on Chromebooks without downloading heavy files. Click 🔑 <b>API Key</b> to link your free key.", "bot");
 </script>
 </body>
 </html>
