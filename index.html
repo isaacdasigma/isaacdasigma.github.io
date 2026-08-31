@@ -1,334 +1,176 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kris AI 20.0 - Browser LLM Edition</title>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
-  <style>
-    :root {
-      --bg: #070a12;
-      --panel: #0f172a;
-      --header: #020617;
-      --accent: #38bdf8;
-      --glow: #818cf8;
-      --text: #f8fafc;
-      --subtext: #94a3b8;
-      --user-msg: #4338ca;
-      --bot-msg: #1e1b4b;
-      --border: rgba(129, 140, 248, 0.2);
-    }
+import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      padding: 10px;
-      box-sizing: border-box;
-    }
+env.allowLocalModels = false;
+env.useBrowserCache = true;
 
-    .chat-container {
-      width: 100%;
-      max-width: 680px;
-      height: 94vh;
-      background: var(--panel);
-      border-radius: 20px;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 0 40px rgba(56, 189, 248, 0.15);
-      overflow: hidden;
-      border: 1px solid var(--border);
-    }
+let generator = null;
+let history = [];
+let learnedFacts = [];
 
-    .chat-header {
-      background: var(--header);
-      padding: 14px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-    }
+function updateStatus(text, progress = 0) {
+  document.getElementById('engineStatus').textContent = text;
+  if (progress >= 0) document.getElementById('progressBar').style.width = `${progress}%`;
+}
 
-    .header-info h4 { margin: 0; font-size: 15px; color: var(--accent); }
-    .header-info p { margin: 2px 0 0; font-size: 11px; color: var(--glow); }
+function renderFormattedText(text) {
+  // Clean out control tags if any leak through stream
+  const clean = text.replace(/<\|im_end\|>|<\|im_start\|>|<\|endoftext\|>/g, '').trim();
+  return DOMPurify.sanitize(clean.replace(/\n/g, '<br>'));
+}
 
-    .memory-badge {
-      font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      background: rgba(129, 140, 248, 0.2);
-      color: var(--glow);
-      border: 1px solid var(--border);
-    }
+function appendBotMessage(text) {
+  const chatBox = document.getElementById("chatBox");
+  const msg = document.createElement("div");
+  msg.className = "message bot";
+  msg.innerHTML = renderFormattedText(text);
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return msg;
+}
 
-    .btn-clear {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--subtext);
-      border-radius: 8px;
-      padding: 4px 10px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.2s;
-    }
-    .btn-clear:hover {
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text);
-    }
+window.clearChat = function() {
+  history = [];
+  learnedFacts = [];
+  document.getElementById("memCount").textContent = "🧠 Memory: 0";
+  document.getElementById("chatBox").innerHTML = '';
+  appendBotMessage("Memory reset! I am Kris AI.");
+};
 
-    .progress-container { width: 100%; background: rgba(255,255,255,0.05); height: 4px; }
-    .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--glow)); transition: width 0.1s linear; }
-
-    .chat-box { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-
-    .message {
-      max-width: 85%;
-      padding: 12px 16px;
-      border-radius: 16px;
-      font-size: 14px;
-      line-height: 1.5;
-      word-wrap: break-word;
-      white-space: pre-wrap;
-    }
-
-    .user { align-self: flex-end; background: var(--user-msg); color: #fff; border-bottom-right-radius: 4px; }
-    .bot { align-self: flex-start; background: var(--bot-msg); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
-
-    .input-area { display: flex; padding: 12px 14px; background: var(--header); gap: 8px; border-top: 1px solid var(--border); }
-    
-    input[type="text"] {
-      flex: 1;
-      padding: 12px 16px;
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      outline: none;
-      background: var(--panel);
-      color: var(--text);
-      font-size: 14px;
-    }
-    input[type="text"]:focus {
-      border-color: var(--accent);
-    }
-
-    button.send-btn {
-      padding: 12px 20px;
-      background: linear-gradient(135deg, var(--accent), var(--glow));
-      color: #0f172a;
-      border: none;
-      border-radius: 24px;
-      cursor: pointer;
-      font-weight: 700;
-      transition: opacity 0.2s;
-    }
-    button.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  </style>
-</head>
-<body>
-
-<div class="chat-container">
-  <div class="chat-header">
-    <div class="header-info">
-      <h4>Kris AI 20.0</h4>
-      <p id="engineStatus">● Initializing GPU Core...</p>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span id="memCount" class="memory-badge">🧠 Memory: 0</span>
-      <button type="button" class="btn-clear" onclick="clearChat()">🧹 Clear</button>
-    </div>
-  </div>
-
-  <div class="progress-container">
-    <div class="progress-bar" id="progressBar"></div>
-  </div>
-
-  <div class="chat-box" id="chatBox"></div>
-
-  <div class="input-area">
-    <input type="text" id="userInput" placeholder="Initializing AI model..." disabled onkeydown="if(event.key==='Enter') sendMessage()">
-    <button type="button" class="send-btn" id="sendBtn" disabled onclick="sendMessage()">Send</button>
-  </div>
-</div>
-
-<script type="module">
-  import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
-
-  env.allowLocalModels = false;
-  env.useBrowserCache = true;
-
-  let generator = null;
-  let history = [];
-  let learnedFacts = [];
-
-  function updateStatus(text, progress = 0) {
-    document.getElementById('engineStatus').textContent = text;
-    if (progress >= 0) document.getElementById('progressBar').style.width = `${progress}%`;
+function updateMemory(userText) {
+  const triggerPattern = /(wrong|incorrect|actually|no,|remember|my name is)/i;
+  if (triggerPattern.test(userText)) {
+    learnedFacts.push(userText);
+    if (learnedFacts.length > 3) learnedFacts.shift();
+    document.getElementById("memCount").textContent = `🧠 Memory: ${learnedFacts.length}`;
   }
+}
 
-  function renderFormattedText(text) {
-    // Converts basic line breaks and sanitizes text for rendering HTML inside messages
-    const formatted = text.replace(/\n/g, '<br>');
-    return DOMPurify.sanitize(formatted);
-  }
+async function initEngine() {
+  updateStatus(`● Initializing Hardware...`, 10);
+  let deviceType = navigator.gpu ? 'webgpu' : 'wasm';
 
-  function appendBotMessage(text) {
-    const chatBox = document.getElementById("chatBox");
-    const msg = document.createElement("div");
-    msg.className = "message bot";
-    msg.innerHTML = renderFormattedText(text);
-    chatBox.appendChild(msg);
-    chatBox.scrollTop = chatBox.scrollHeight;
-    return msg;
-  }
+  // Using 360M model for significantly better instruction adherence
+  const modelName = 'onnx-community/SmolLM2-360M-Instruct-ONNX';
 
-  window.clearChat = function() {
-    history = [];
-    learnedFacts = [];
-    document.getElementById("memCount").textContent = "🧠 Memory: 0";
-    document.getElementById("chatBox").innerHTML = '';
-    appendBotMessage("Chat and active memory reset.");
-  };
-
-  function updateMemory(userText) {
-    const triggerPattern = /(wrong|incorrect|actually|no,|remember|my name is|your name is)/i;
-    if (triggerPattern.test(userText)) {
-      learnedFacts.push(userText);
-      if (learnedFacts.length > 3) learnedFacts.shift();
-      document.getElementById("memCount").textContent = `🧠 Memory: ${learnedFacts.length}`;
-    }
-  }
-
-  async function initEngine() {
-    updateStatus(`● Initializing Hardware...`, 10);
-
-    const hasWebGPU = !!navigator.gpu;
-    let deviceType = hasWebGPU ? 'webgpu' : 'wasm';
-
-    try {
-      generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
-        device: deviceType,
-        dtype: 'q4',
-        progress_callback: (p) => {
-          if (p.status === 'progress') {
-            const pct = Math.round(p.progress || 0);
-            updateStatus(`● Downloading Model (${pct}%)...`, pct);
-          }
+  try {
+    generator = await pipeline('text-generation', modelName, {
+      device: deviceType,
+      dtype: 'q4',
+      progress_callback: (p) => {
+        if (p.status === 'progress') {
+          const pct = Math.round(p.progress || 0);
+          updateStatus(`● Loading AI Engine (${pct}%)...`, pct);
         }
-      });
-
-      updateStatus(`● Ready (${deviceType.toUpperCase()})`, 100);
-      enableInputs();
-      appendBotMessage(`<b>Hardware Acceleration Active (${deviceType.toUpperCase()})</b><br>I am ready to chat!`);
-    } catch (err) {
-      console.warn("GPU/Preferred initialization failed, falling back to WASM CPU mode:", err);
-      try {
-        generator = await pipeline('text-generation', 'onnx-community/SmolLM2-135M-Instruct-ONNX', {
-          device: 'wasm',
-          dtype: 'q4'
-        });
-        updateStatus(`● Ready (WASM CPU Mode)`, 100);
-        enableInputs();
-        appendBotMessage("<b>Engine Ready (WASM CPU Fallback)</b>");
-      } catch (fallbackErr) {
-        console.error("Fatal Model Load Error:", fallbackErr);
-        updateStatus("● Error Loading Engine", 0);
       }
-    }
-  }
+    });
 
-  function enableInputs() {
-    document.getElementById('userInput').disabled = false;
-    document.getElementById('sendBtn').disabled = false;
-    document.getElementById('userInput').placeholder = 'Type a message...';
-    document.getElementById('userInput').focus();
-  }
-
-  window.sendMessage = async function() {
-    const input = document.getElementById("userInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const text = input.value.trim();
-
-    if (!text || !generator) return;
-
-    const chatBox = document.getElementById("chatBox");
-
-    // Render User Message
-    const userMsg = document.createElement("div");
-    userMsg.className = "message user";
-    userMsg.textContent = text;
-    chatBox.appendChild(userMsg);
-
-    input.value = "";
-    input.disabled = true;
-    sendBtn.disabled = true;
-
-    updateMemory(text);
-
-    // Maintain a rolling context window
-    history.push({ role: 'user', content: text });
-    if (history.length > 4) history = history.slice(-4);
-
-    const activeBotMsg = document.createElement("div");
-    activeBotMsg.className = "message bot";
-    activeBotMsg.textContent = "...";
-    chatBox.appendChild(activeBotMsg);
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    // Dynamic system prompt with memory insertions
-    let systemMessage = "You are Kris AI, a helpful, precise AI assistant. Your name is strictly Kris AI.";
-    if (learnedFacts.length > 0) {
-      systemMessage += "\nUser Memory Context:\n- " + learnedFacts.join("\n- ");
-    }
-
-    const messages = [
-      { role: 'system', content: systemMessage },
-      ...history
-    ];
-
-    let responseText = "";
-
+    updateStatus(`● Ready (${deviceType.toUpperCase()})`, 100);
+    enableInputs();
+    appendBotMessage(`<b>Kris AI Ready (${deviceType.toUpperCase()})!</b><br>How can I help you today?`);
+  } catch (err) {
+    console.warn("Primary engine load failed, switching to WASM fallback...", err);
     try {
-      const formattedPrompt = await generator.tokenizer.apply_chat_template(messages, {
-        tokenize: false,
-        add_generation_prompt: true,
+      generator = await pipeline('text-generation', modelName, {
+        device: 'wasm',
+        dtype: 'q4'
       });
-
-      const streamer = new TextStreamer(generator.tokenizer, {
-        skip_prompt: true,
-        skip_special_tokens: true,
-        callback_function: (chunk) => {
-          responseText += chunk;
-          activeBotMsg.innerHTML = renderFormattedText(responseText);
-          chatBox.scrollTop = chatBox.scrollHeight;
-        }
-      });
-
-      await generator(formattedPrompt, {
-        max_new_tokens: 120,
-        do_sample: false,
-        repetition_penalty: 1.15,
-        streamer: streamer
-      });
-
-      const finalContent = responseText.trim() || "I am Kris AI, how can I help you?";
-      activeBotMsg.innerHTML = renderFormattedText(finalContent);
-      history.push({ role: 'assistant', content: finalContent });
-
-    } catch (e) {
-      console.error("Generation Error:", e);
-      activeBotMsg.textContent = "⚠️ Error processing generation request.";
-    } finally {
-      input.disabled = false;
-      sendBtn.disabled = false;
-      input.focus();
+      updateStatus(`● Ready (WASM CPU Mode)`, 100);
+      enableInputs();
+      appendBotMessage("<b>Kris AI Ready (WASM CPU Mode)</b>");
+    } catch (fallbackErr) {
+      console.error(fallbackErr);
+      updateStatus("● Engine Error", 0);
     }
-  };
+  }
+}
 
-  initEngine();
-</script>
-</body>
-</html>
+function enableInputs() {
+  document.getElementById('userInput').disabled = false;
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('userInput').placeholder = 'Type a message...';
+  document.getElementById('userInput').focus();
+}
+
+window.sendMessage = async function() {
+  const input = document.getElementById("userInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const text = input.value.trim();
+
+  if (!text || !generator) return;
+
+  const chatBox = document.getElementById("chatBox");
+
+  const userMsg = document.createElement("div");
+  userMsg.className = "message user";
+  userMsg.textContent = text;
+  chatBox.appendChild(userMsg);
+
+  input.value = "";
+  input.disabled = true;
+  sendBtn.disabled = true;
+
+  updateMemory(text);
+
+  history.push({ role: 'user', content: text });
+  if (history.length > 4) history = history.slice(-4);
+
+  const activeBotMsg = document.createElement("div");
+  activeBotMsg.className = "message bot";
+  activeBotMsg.textContent = "...";
+  chatBox.appendChild(activeBotMsg);
+
+  // Strict System Prompt
+  let systemPrompt = "You are Kris AI, a helpful and concise AI assistant. Always answer directly and keep responses short.";
+  if (learnedFacts.length > 0) {
+    systemPrompt += "\nNotes to remember:\n- " + learnedFacts.join("\n- ");
+  }
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...history
+  ];
+
+  let responseText = "";
+
+  try {
+    const formattedPrompt = await generator.tokenizer.apply_chat_template(messages, {
+      tokenize: false,
+      add_generation_prompt: true,
+    });
+
+    const streamer = new TextStreamer(generator.tokenizer, {
+      skip_prompt: true,
+      skip_special_tokens: true,
+      callback_function: (chunk) => {
+        // Stop streaming if the model emits stop markers
+        if (chunk.includes('<|im_end|>')) return;
+        responseText += chunk;
+        activeBotMsg.innerHTML = renderFormattedText(responseText);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    });
+
+    await generator(formattedPrompt, {
+      max_new_tokens: 100,
+      do_sample: true,
+      temperature: 0.3, // Lower temperature keeps answers grounded
+      top_p: 0.9,
+      repetition_penalty: 1.2,
+      streamer: streamer
+    });
+
+    const finalContent = responseText.replace(/<\|im_end\|>.*$/s, '').trim() || "I am Kris AI. How can I assist you?";
+    activeBotMsg.innerHTML = renderFormattedText(finalContent);
+    history.push({ role: 'assistant', content: finalContent });
+
+  } catch (e) {
+    console.error(e);
+    activeBotMsg.textContent = `⚠️ Engine execution error.`;
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+};
+
+initEngine();
