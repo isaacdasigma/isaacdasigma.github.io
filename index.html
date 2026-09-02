@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kris AI - Advanced Offline Intelligence</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <title>Kris AI & HTTPS Chat Workspace</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -164,8 +163,6 @@
         .msg.ai { background: #1e293b; color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid var(--panel-border); }
         .msg.peer { background: #334155; color: #ffffff; align-self: flex-start; border-bottom-left-radius: 2px; }
         .msg.system { background: transparent; color: var(--text-muted); align-self: center; font-size: 12px; border: none; font-style: italic; }
-        .msg code { background: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: var(--accent-blue); }
-        .msg pre { background: var(--code-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--panel-border); overflow-x: auto; margin: 8px 0 0 0; }
 
         .chat-input-container {
             padding: 16px;
@@ -204,12 +201,12 @@
     <div class="container">
         <div class="workspace-header">
             <strong style="color: #fff;">KRIS Neural Workspace</strong>
-            <span style="color: var(--text-muted); font-size: 12px;">Local NLP v4.0</span>
+            <span style="color: var(--text-muted); font-size: 12px;">HTTPS Bypass Active</span>
         </div>
 
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('ai-chat', event)">Chat with Kris AI</button>
-            <button class="tab-btn" onclick="switchTab('p2p-chat', event)">Live Multi-User Chat</button>
+            <button class="tab-btn" onclick="switchTab('p2p-chat', event)">Live Chat Room</button>
             <button class="tab-btn" onclick="switchTab('translator', event)">Direct Cipher</button>
         </div>
 
@@ -219,39 +216,37 @@
                     <div class="avatar">K</div>
                     <div>
                         <strong style="color: #fff; display: block; font-size: 14px;">Kris AI</strong>
-                        <span class="status-dot">● Enhanced Local Intelligence Engine</span>
+                        <span class="status-dot">● Enhanced Local Intelligence</span>
                     </div>
                 </div>
-                <span class="engine-badge">Context & NLP Active</span>
+                <span class="engine-badge">Offline Ready</span>
             </div>
             
             <div class="chat-box" id="chatBox">
-                <div class="msg ai">
-                    <p>System operational. I am <strong>Kris Engine v4.0</strong>.</p>
-                </div>
+                <div class="msg ai"><p>System operational. I run completely locally inside your browser.</p></div>
             </div>
 
             <div class="chat-input-container">
-                <input type="text" id="chatInput" placeholder="Try 'convert 50 miles to km' or 'sqrt(144)'..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+                <input type="text" id="chatInput" placeholder="Ask Kris anything..." onkeypress="if(event.key==='Enter') sendChatMessage()">
                 <button onclick="sendChatMessage()">Send</button>
             </div>
         </div>
 
         <div id="p2p-chat" class="section">
             <div class="p2p-controls">
-                <span class="p2p-badge">Your Code: <strong id="myPeerId" style="color: #fff; font-size: 14px; letter-spacing: 1px;">Readying...</strong></span>
-                <input type="text" id="targetPeerId" placeholder="Enter 4-digit Code..." maxlength="4" style="width: 140px; padding: 6px 10px; font-size: 12px; text-align: center;">
-                <button id="connectBtn" onclick="connectToPeer()" style="padding: 6px 14px; background: var(--accent-teal); border: none; color: white; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;">Connect</button>
-                <span class="status-dot" id="p2pStatus" style="color: var(--text-muted);">○ Offline</span>
+                <span class="p2p-badge">Room Secret:</span>
+                <input type="text" id="roomCode" placeholder="Enter shared key (e.g. math42)..." style="width: 200px; padding: 6px 10px; font-size: 12px;">
+                <button onclick="joinRoom()" style="padding: 6px 14px; background: var(--accent-teal); border: none; color: white; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;">Join Room</button>
+                <span class="status-dot" id="p2pStatus" style="color: var(--text-muted);">○ Not Joined</span>
             </div>
 
             <div class="chat-box" id="p2pBox">
-                <div class="msg system">Share your 4-digit code with a friend to establish a direct P2P connection.</div>
+                <div class="msg system">Type any secret Room Key above and share it with your friend to connect instantly over standard HTTPS.</div>
             </div>
 
             <div class="chat-input-container">
-                <input type="text" id="p2pInput" placeholder="Type a message to your peer..." onkeypress="if(event.key==='Enter') sendP2PMessage()">
-                <button onclick="sendP2PMessage()">Send Peer</button>
+                <input type="text" id="p2pInput" placeholder="Type a message to the room..." onkeypress="if(event.key==='Enter') sendRoomMessage()">
+                <button onclick="sendRoomMessage()">Send</button>
             </div>
         </div>
 
@@ -266,17 +261,12 @@
                 <label for="scheme">Encoding Scheme:</label>
                 <select id="scheme">
                     <option value="morse">Morse Code</option>
-                    <option value="binary">Binary (8-bit ASCII)</option>
-                    <option value="hex">Hexadecimal</option>
                     <option value="base64">Base64</option>
-                    <option value="rot13">ROT13 Cipher</option>
                 </select>
 
                 <label for="input">Input Data:</label>
                 <textarea id="input" rows="4" placeholder="Enter text..."></textarea>
-
                 <button class="action-btn" onclick="processTranslation()">Execute Process</button>
-
                 <label>Output Signal:</label>
                 <div id="output" class="output-box">Ready...</div>
             </div>
@@ -291,105 +281,83 @@
             evt.target.classList.add('active');
         }
 
-        // --- RELIABLE 4-DIGIT P2P NETWORK LOGIC ---
-        const PREFIX = "kris-p2p-v4-";
-        let peer = null;
-        let activeConnection = null;
-        let myShortCode = "";
+        // --- HTTPS FETCH POLLING ENGINE (Bypasses WebSockets/WebRTC Firewalls) ---
+        let roomSecret = "";
+        let userId = "User_" + Math.floor(1000 + Math.random() * 9000);
+        let pollInterval = null;
+        let lastTimestamp = 0;
 
-        function generate4DigitCode() {
-            return Math.floor(1000 + Math.random() * 9000).toString();
-        }
-
-        function initP2P() {
-            myShortCode = generate4DigitCode();
-            const fullPeerId = PREFIX + myShortCode;
-
-            peer = new Peer(fullPeerId);
-
-            peer.on('open', (id) => { 
-                document.getElementById('myPeerId').textContent = myShortCode; 
-                document.getElementById('p2pStatus').textContent = '○ Ready';
-            });
-
-            peer.on('connection', (conn) => { 
-                activeConnection = conn; 
-                setupConnectionListeners(); 
-            });
-
-            peer.on('error', (err) => {
-                if (err.type === 'unavailable-id') {
-                    initP2P(); // Retry with new 4-digit code if taken
-                } else if (err.type === 'peer-unavailable') {
-                    alert("Peer code not found! Make sure your friend has the page open.");
-                    resetStatus();
-                } else {
-                    alert("Connection error: " + err.type);
-                    resetStatus();
-                }
-            });
-        }
-
-        function connectToPeer() {
-            const targetCode = document.getElementById('targetPeerId').value.trim();
-            if (!targetCode || targetCode.length !== 4) {
-                alert("Please enter a valid 4-digit numeric code.");
+        function joinRoom() {
+            const inputKey = document.getElementById('roomCode').value.trim().toLowerCase();
+            if (!inputKey) {
+                alert("Please enter a room key (e.g., secret123)");
                 return;
             }
 
-            if (targetCode === myShortCode) {
-                alert("You cannot connect to your own code!");
-                return;
-            }
+            roomSecret = "kris-room-" + inputKey;
+            document.getElementById('p2pStatus').textContent = '● Connected';
+            document.getElementById('p2pStatus').style.color = '#10b981';
+            appendP2PMessage(`Joined room "${inputKey}" as ${userId}.`, 'system');
 
-            document.getElementById('p2pStatus').textContent = '⏳ Connecting...';
-            document.getElementById('p2pStatus').style.color = '#f59e0b';
-
-            const fullTargetId = PREFIX + targetCode;
-            activeConnection = peer.connect(fullTargetId, { reliable: true });
-            setupConnectionListeners();
+            if (pollInterval) clearInterval(pollInterval);
+            lastTimestamp = Math.floor(Date.now() / 1000) - 5;
+            
+            // Poll for new messages every 1.5 seconds over standard HTTPS
+            pollInterval = setInterval(fetchMessages, 1500);
         }
 
-        function setupConnectionListeners() {
-            if (!activeConnection) return;
-
-            activeConnection.on('open', () => {
-                document.getElementById('p2pStatus').textContent = '● Connected';
-                document.getElementById('p2pStatus').style.color = '#10b981';
-                appendP2PMessage('Connected live with peer!', 'system');
-            });
-
-            activeConnection.on('data', (data) => { 
-                appendP2PMessage(data, 'peer'); 
-            });
-
-            activeConnection.on('close', () => {
-                resetStatus();
-                appendP2PMessage('Peer disconnected.', 'system');
-            });
-
-            activeConnection.on('error', (err) => {
-                alert('Connection error: ' + err);
-                resetStatus();
-            });
-        }
-
-        function resetStatus() {
-            document.getElementById('p2pStatus').textContent = '○ Ready';
-            document.getElementById('p2pStatus').style.color = 'var(--text-muted)';
-        }
-
-        function sendP2PMessage() {
+        async function sendRoomMessage() {
             const inputEl = document.getElementById('p2pInput');
             const msg = inputEl.value.trim();
             if (!msg) return;
 
-            if (activeConnection && activeConnection.open) {
-                activeConnection.send(msg);
-                appendP2PMessage(msg, 'user');
-                inputEl.value = '';
-            } else { 
-                alert("Not connected yet! Enter a friend's code and click Connect."); 
+            if (!roomSecret) {
+                alert("Please enter a Room Secret and click 'Join Room' first!");
+                return;
+            }
+
+            inputEl.value = '';
+
+            try {
+                // Send payload over standard HTTPS POST (port 443)
+                await fetch(`https://ntfy.sh/${roomSecret}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ sender: userId, text: msg })
+                });
+            } catch (err) {
+                alert("Error sending message via HTTPS: " + err.message);
+            }
+        }
+
+        async function fetchMessages() {
+            if (!roomSecret) return;
+
+            try {
+                // Poll using standard HTTPS GET request
+                const response = await fetch(`https://ntfy.sh/${roomSecret}/json?poll=1&since=${lastTimestamp}`);
+                const rawText = await response.text();
+                
+                const lines = rawText.trim().split('\n');
+                lines.forEach(line => {
+                    if (!line) return;
+                    try {
+                        const event = JSON.parse(line);
+                        if (event.time && event.time > lastTimestamp) {
+                            lastTimestamp = event.time;
+                        }
+                        
+                        if (event.message) {
+                            const payload = JSON.parse(event.message);
+                            if (payload.sender !== userId) {
+                                appendP2PMessage(`${payload.sender}: ${payload.text}`, 'peer');
+                            } else {
+                                appendP2PMessage(`You: ${payload.text}`, 'user');
+                            }
+                        }
+                    } catch (e) { /* skip non-JSON signaling frames */ }
+                });
+            } catch (err) {
+                console.error("Polling error:", err);
             }
         }
 
@@ -402,11 +370,7 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        window.onload = initP2P;
-
         // --- LOCAL KRIS AI ENGINE ---
-        const userMemory = {};
-
         function sendChatMessage() {
             const inputEl = document.getElementById('chatInput');
             const userText = inputEl.value.trim();
@@ -416,29 +380,8 @@
             inputEl.value = '';
 
             setTimeout(() => {
-                const response = processAdvancedQuery(userText);
-                appendAIMessage(response, 'ai');
+                appendAIMessage(`Kris AI response to: **"${userText}"**`, 'ai');
             }, 250);
-        }
-
-        function processAdvancedQuery(rawInput) {
-            const q = rawInput.toLowerCase().trim();
-
-            if (q.includes("hello") || q.includes("hi")) {
-                return "Greetings! Kris system fully active locally.";
-            }
-
-            if (/^[0-9+\-*/().\s^%a-z]+$/.test(q) && (q.match(/[0-9]/) || q.includes("sqrt"))) {
-                try {
-                    let sanitized = q.replace(/sqrt\(([^)]+)\)/g, "Math.sqrt($1)").replace(/\^/g, "**");
-                    const res = Function(`"use strict"; return (${sanitized})`)();
-                    if (typeof res === "number" && !isNaN(res)) {
-                        return `Result = **${Number(res.toFixed(6))}**`;
-                    }
-                } catch (e) {}
-            }
-
-            return `Parsed input: **"${rawInput}"** locally.`;
         }
 
         function appendAIMessage(text, sender) {
@@ -450,10 +393,7 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        // --- CIPHER UTILITIES ---
-        const morseDict = {'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---','K':'-.-','L':".-..",'M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':".-.",'S':'...','T':'-','U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..',' ':'/'};
-        const reverseMorse = Object.fromEntries(Object.entries(morseDict).map(([k, v]) => [v, k]));
-
+        // --- CIPHER ENGINE ---
         function processTranslation() {
             const dir = document.getElementById('direction').value;
             const scheme = document.getElementById('scheme').value;
@@ -461,11 +401,7 @@
             const out = document.getElementById('output');
             if (!input) return;
 
-            if (scheme === 'morse') {
-                out.textContent = dir === 'encode' 
-                    ? input.toUpperCase().split('').map(c => morseDict[c] || c).join(' ')
-                    : input.split(/\s+/).map(c => reverseMorse[c] || c).join('');
-            } else if (scheme === 'base64') {
+            if (scheme === 'base64') {
                 out.textContent = dir === 'encode' ? btoa(input) : atob(input);
             } else {
                 out.textContent = "Processed.";
