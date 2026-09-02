@@ -210,6 +210,7 @@
             <button class="tab-btn" onclick="switchTab('translator', event)">Direct Cipher</button>
         </div>
 
+        <!-- KRIS AI TAB -->
         <div id="ai-chat" class="section active">
             <div class="chat-header">
                 <div class="ai-profile">
@@ -232,6 +233,7 @@
             </div>
         </div>
 
+        <!-- FIREWALL-PROOF HTTPS CHAT TAB -->
         <div id="p2p-chat" class="section">
             <div class="p2p-controls">
                 <span class="p2p-badge">Room Secret:</span>
@@ -250,6 +252,7 @@
             </div>
         </div>
 
+        <!-- TRANSLATOR TAB -->
         <div id="translator" class="section">
             <div class="tools-body">
                 <label for="direction">Operation Mode:</label>
@@ -281,11 +284,12 @@
             evt.target.classList.add('active');
         }
 
-        // --- HTTPS FETCH POLLING ENGINE (Bypasses WebSockets/WebRTC Firewalls) ---
+        // --- DEDUPLICATED HTTPS FETCH POLLING ENGINE ---
         let roomSecret = "";
         let userId = "User_" + Math.floor(1000 + Math.random() * 9000);
         let pollInterval = null;
         let lastTimestamp = 0;
+        const seenMessageIds = new Set(); // Prevents duplicate message loops
 
         function joinRoom() {
             const inputKey = document.getElementById('roomCode').value.trim().toLowerCase();
@@ -297,13 +301,17 @@
             roomSecret = "kris-room-" + inputKey;
             document.getElementById('p2pStatus').textContent = '● Connected';
             document.getElementById('p2pStatus').style.color = '#10b981';
+            
+            // Reset message tracking on room join
+            seenMessageIds.clear();
+            document.getElementById('p2pBox').innerHTML = '';
             appendP2PMessage(`Joined room "${inputKey}" as ${userId}.`, 'system');
 
             if (pollInterval) clearInterval(pollInterval);
-            lastTimestamp = Math.floor(Date.now() / 1000) - 5;
+            lastTimestamp = Math.floor(Date.now() / 1000) - 2;
             
-            // Poll for new messages every 1.5 seconds over standard HTTPS
-            pollInterval = setInterval(fetchMessages, 1500);
+            // Poll every 2 seconds
+            pollInterval = setInterval(fetchMessages, 2000);
         }
 
         async function sendRoomMessage() {
@@ -317,15 +325,17 @@
             }
 
             inputEl.value = '';
+            
+            // Render locally immediately
+            appendP2PMessage(`You: ${msg}`, 'user');
 
             try {
-                // Send payload over standard HTTPS POST (port 443)
                 await fetch(`https://ntfy.sh/${roomSecret}`, {
                     method: 'POST',
                     body: JSON.stringify({ sender: userId, text: msg })
                 });
             } catch (err) {
-                alert("Error sending message via HTTPS: " + err.message);
+                appendP2PMessage("Failed to send message.", 'system');
             }
         }
 
@@ -333,28 +343,32 @@
             if (!roomSecret) return;
 
             try {
-                // Poll using standard HTTPS GET request
                 const response = await fetch(`https://ntfy.sh/${roomSecret}/json?poll=1&since=${lastTimestamp}`);
                 const rawText = await response.text();
-                
+                if (!rawText.trim()) return;
+
                 const lines = rawText.trim().split('\n');
                 lines.forEach(line => {
                     if (!line) return;
                     try {
                         const event = JSON.parse(line);
+
+                        // Ignore already processed messages
+                        if (!event.id || seenMessageIds.has(event.id)) return;
+                        seenMessageIds.add(event.id);
+
                         if (event.time && event.time > lastTimestamp) {
                             lastTimestamp = event.time;
                         }
-                        
+
                         if (event.message) {
                             const payload = JSON.parse(event.message);
+                            // Only display messages from other users
                             if (payload.sender !== userId) {
                                 appendP2PMessage(`${payload.sender}: ${payload.text}`, 'peer');
-                            } else {
-                                appendP2PMessage(`You: ${payload.text}`, 'user');
                             }
                         }
-                    } catch (e) { /* skip non-JSON signaling frames */ }
+                    } catch (e) { /* skip malformed frames */ }
                 });
             } catch (err) {
                 console.error("Polling error:", err);
@@ -367,6 +381,12 @@
             div.className = `msg ${type}`;
             div.textContent = text;
             box.appendChild(div);
+            
+            // Prevent DOM overload by capping total messages to 50
+            if (box.children.length > 50) {
+                box.removeChild(box.firstChild);
+            }
+            
             box.scrollTop = box.scrollHeight;
         }
 
