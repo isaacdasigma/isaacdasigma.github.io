@@ -239,14 +239,14 @@
 
         <div id="p2p-chat" class="section">
             <div class="p2p-controls">
-                <span class="p2p-badge">Your Code: <strong id="myPeerId" style="color: #fff; font-size: 14px; letter-spacing: 1px;">....</strong></span>
+                <span class="p2p-badge">Your Code: <strong id="myPeerId" style="color: #fff; font-size: 14px; letter-spacing: 1px;">Readying...</strong></span>
                 <input type="text" id="targetPeerId" placeholder="Enter 4-digit Code..." maxlength="4" style="width: 140px; padding: 6px 10px; font-size: 12px; text-align: center;">
-                <button onclick="connectToPeer()" style="padding: 6px 14px; background: var(--accent-teal); border: none; color: white; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;">Connect</button>
+                <button id="connectBtn" onclick="connectToPeer()" style="padding: 6px 14px; background: var(--accent-teal); border: none; color: white; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;">Connect</button>
                 <span class="status-dot" id="p2pStatus" style="color: var(--text-muted);">○ Offline</span>
             </div>
 
             <div class="chat-box" id="p2pBox">
-                <div class="msg system">Share your 4-digit code with a friend to establish a peer-to-peer chat connection.</div>
+                <div class="msg system">Share your 4-digit code with a friend to establish a direct P2P connection.</div>
             </div>
 
             <div class="chat-input-container">
@@ -291,20 +291,25 @@
             evt.target.classList.add('active');
         }
 
-        // --- 4-DIGIT P2P NETWORK LOGIC ---
+        // --- RELIABLE 4-DIGIT P2P NETWORK LOGIC ---
+        const PREFIX = "kris-p2p-v4-";
         let peer = null;
         let activeConnection = null;
+        let myShortCode = "";
 
         function generate4DigitCode() {
             return Math.floor(1000 + Math.random() * 9000).toString();
         }
 
         function initP2P() {
-            const shortId = generate4DigitCode();
-            peer = new Peer(shortId);
+            myShortCode = generate4DigitCode();
+            const fullPeerId = PREFIX + myShortCode;
+
+            peer = new Peer(fullPeerId);
 
             peer.on('open', (id) => { 
-                document.getElementById('myPeerId').textContent = id; 
+                document.getElementById('myPeerId').textContent = myShortCode; 
+                document.getElementById('p2pStatus').textContent = '○ Ready';
             });
 
             peer.on('connection', (conn) => { 
@@ -314,23 +319,40 @@
 
             peer.on('error', (err) => {
                 if (err.type === 'unavailable-id') {
-                    // Automatically retry if the 4-digit code is taken
-                    initP2P();
+                    initP2P(); // Retry with new 4-digit code if taken
+                } else if (err.type === 'peer-unavailable') {
+                    alert("Peer code not found! Make sure your friend has the page open.");
+                    resetStatus();
+                } else {
+                    alert("Connection error: " + err.type);
+                    resetStatus();
                 }
             });
         }
 
         function connectToPeer() {
-            const targetId = document.getElementById('targetPeerId').value.trim();
-            if (!targetId || targetId.length !== 4) {
-                alert("Please enter a valid 4-digit code.");
+            const targetCode = document.getElementById('targetPeerId').value.trim();
+            if (!targetCode || targetCode.length !== 4) {
+                alert("Please enter a valid 4-digit numeric code.");
                 return;
             }
-            activeConnection = peer.connect(targetId);
+
+            if (targetCode === myShortCode) {
+                alert("You cannot connect to your own code!");
+                return;
+            }
+
+            document.getElementById('p2pStatus').textContent = '⏳ Connecting...';
+            document.getElementById('p2pStatus').style.color = '#f59e0b';
+
+            const fullTargetId = PREFIX + targetCode;
+            activeConnection = peer.connect(fullTargetId, { reliable: true });
             setupConnectionListeners();
         }
 
         function setupConnectionListeners() {
+            if (!activeConnection) return;
+
             activeConnection.on('open', () => {
                 document.getElementById('p2pStatus').textContent = '● Connected';
                 document.getElementById('p2pStatus').style.color = '#10b981';
@@ -342,10 +364,19 @@
             });
 
             activeConnection.on('close', () => {
-                document.getElementById('p2pStatus').textContent = '○ Disconnected';
-                document.getElementById('p2pStatus').style.color = 'var(--text-muted)';
+                resetStatus();
                 appendP2PMessage('Peer disconnected.', 'system');
             });
+
+            activeConnection.on('error', (err) => {
+                alert('Connection error: ' + err);
+                resetStatus();
+            });
+        }
+
+        function resetStatus() {
+            document.getElementById('p2pStatus').textContent = '○ Ready';
+            document.getElementById('p2pStatus').style.color = 'var(--text-muted)';
         }
 
         function sendP2PMessage() {
@@ -358,7 +389,7 @@
                 appendP2PMessage(msg, 'user');
                 inputEl.value = '';
             } else { 
-                alert("Please connect to a peer code first!"); 
+                alert("Not connected yet! Enter a friend's code and click Connect."); 
             }
         }
 
@@ -373,7 +404,9 @@
 
         window.onload = initP2P;
 
-        // --- LOCAL KRIS AI LOGIC ---
+        // --- LOCAL KRIS AI ENGINE ---
+        const userMemory = {};
+
         function sendChatMessage() {
             const inputEl = document.getElementById('chatInput');
             const userText = inputEl.value.trim();
@@ -383,8 +416,29 @@
             inputEl.value = '';
 
             setTimeout(() => {
-                appendAIMessage(`Processed query: **${userText}**`, 'ai');
+                const response = processAdvancedQuery(userText);
+                appendAIMessage(response, 'ai');
             }, 250);
+        }
+
+        function processAdvancedQuery(rawInput) {
+            const q = rawInput.toLowerCase().trim();
+
+            if (q.includes("hello") || q.includes("hi")) {
+                return "Greetings! Kris system fully active locally.";
+            }
+
+            if (/^[0-9+\-*/().\s^%a-z]+$/.test(q) && (q.match(/[0-9]/) || q.includes("sqrt"))) {
+                try {
+                    let sanitized = q.replace(/sqrt\(([^)]+)\)/g, "Math.sqrt($1)").replace(/\^/g, "**");
+                    const res = Function(`"use strict"; return (${sanitized})`)();
+                    if (typeof res === "number" && !isNaN(res)) {
+                        return `Result = **${Number(res.toFixed(6))}**`;
+                    }
+                } catch (e) {}
+            }
+
+            return `Parsed input: **"${rawInput}"** locally.`;
         }
 
         function appendAIMessage(text, sender) {
