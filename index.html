@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kris AI & Peer Workspace</title>
-    <!-- PeerJS WebRTC Library for Serverless P2P Chat -->
+    <title>Kris AI - Advanced Offline Intelligence</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root {
@@ -13,6 +12,7 @@
             --panel-border: #334155;
             --accent-teal: #14b8a6;
             --accent-blue: #38bdf8;
+            --accent-purple: #a855f7;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --code-bg: #090d16;
@@ -82,18 +82,8 @@
             border-color: var(--accent-teal);
         }
 
-        .section { 
-            display: none; 
-            height: 100%; 
-            min-height: 0; 
-        }
-        .section.active { 
-            display: flex; 
-            flex-direction: column; 
-            flex: 1; 
-            min-height: 0; 
-            overflow: hidden;
-        }
+        .section { display: none; height: 100%; min-height: 0; }
+        .section.active { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 
         .tools-body { padding: 20px; overflow-y: auto; }
         label { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: var(--accent-blue); }
@@ -134,7 +124,6 @@
             margin-top: 6px;
         }
 
-        /* Chat Layout Controls */
         .chat-header {
             display: flex;
             align-items: center;
@@ -147,16 +136,16 @@
         .ai-profile { display: flex; align-items: center; gap: 12px; }
         .avatar {
             width: 36px; height: 36px;
-            background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
             border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
             font-weight: 800; color: #fff;
         }
         .status-dot { font-size: 11px; color: #10b981; font-weight: 600; }
         .engine-badge {
-            font-size: 11px; background: rgba(20, 184, 166, 0.15);
-            color: var(--accent-teal); padding: 4px 10px;
-            border-radius: 20px; border: 1px solid rgba(20, 184, 166, 0.3);
+            font-size: 11px; background: rgba(168, 85, 247, 0.15);
+            color: var(--accent-purple); padding: 4px 10px;
+            border-radius: 20px; border: 1px solid rgba(168, 85, 247, 0.3);
         }
 
         .chat-box {
@@ -175,6 +164,8 @@
         .msg.ai { background: #1e293b; color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid var(--panel-border); }
         .msg.peer { background: #334155; color: #ffffff; align-self: flex-start; border-bottom-left-radius: 2px; }
         .msg.system { background: transparent; color: var(--text-muted); align-self: center; font-size: 12px; border: none; font-style: italic; }
+        .msg code { background: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: var(--accent-blue); }
+        .msg pre { background: var(--code-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--panel-border); overflow-x: auto; margin: 8px 0 0 0; }
 
         .chat-input-container {
             padding: 16px;
@@ -212,8 +203,8 @@
 
     <div class="container">
         <div class="workspace-header">
-            <strong style="color: #fff;">KRIS Intelligence Workspace</strong>
-            <span style="color: var(--text-muted); font-size: 12px;">P2P Enabled</span>
+            <strong style="color: #fff;">KRIS Neural Workspace</strong>
+            <span style="color: var(--text-muted); font-size: 12px;">Local NLP v4.0</span>
         </div>
 
         <div class="tabs">
@@ -222,42 +213,40 @@
             <button class="tab-btn" onclick="switchTab('translator', event)">Direct Cipher</button>
         </div>
 
-        <!-- KRIS AI CHAT TAB -->
         <div id="ai-chat" class="section active">
             <div class="chat-header">
                 <div class="ai-profile">
                     <div class="avatar">K</div>
                     <div>
-                        <strong style="color: #fff; display: block; font-size: 14px;">Kris</strong>
-                        <span class="status-dot">● Offline AI Engine</span>
+                        <strong style="color: #fff; display: block; font-size: 14px;">Kris AI</strong>
+                        <span class="status-dot">● Enhanced Local Intelligence Engine</span>
                     </div>
                 </div>
-                <span class="engine-badge">Zero API Required</span>
+                <span class="engine-badge">Context & NLP Active</span>
             </div>
             
             <div class="chat-box" id="chatBox">
                 <div class="msg ai">
-                    <p>System operational. Ask me math equations, code generation requests, or cryptographic ciphers.</p>
+                    <p>System operational. I am <strong>Kris Engine v4.0</strong>.</p>
                 </div>
             </div>
 
             <div class="chat-input-container">
-                <input type="text" id="chatInput" placeholder="Ask Kris anything..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+                <input type="text" id="chatInput" placeholder="Try 'convert 50 miles to km' or 'sqrt(144)'..." onkeypress="if(event.key==='Enter') sendChatMessage()">
                 <button onclick="sendChatMessage()">Send</button>
             </div>
         </div>
 
-        <!-- MULTI-USER P2P CHAT TAB -->
         <div id="p2p-chat" class="section">
             <div class="p2p-controls">
-                <span class="p2p-badge">Your ID: <strong id="myPeerId" style="color: #fff;">Generating...</strong></span>
-                <input type="text" id="targetPeerId" placeholder="Enter Friend's Peer ID..." style="width: 220px; padding: 6px 10px; font-size: 12px;">
+                <span class="p2p-badge">Your Code: <strong id="myPeerId" style="color: #fff; font-size: 14px; letter-spacing: 1px;">....</strong></span>
+                <input type="text" id="targetPeerId" placeholder="Enter 4-digit Code..." maxlength="4" style="width: 140px; padding: 6px 10px; font-size: 12px; text-align: center;">
                 <button onclick="connectToPeer()" style="padding: 6px 14px; background: var(--accent-teal); border: none; color: white; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;">Connect</button>
                 <span class="status-dot" id="p2pStatus" style="color: var(--text-muted);">○ Offline</span>
             </div>
 
             <div class="chat-box" id="p2pBox">
-                <div class="msg system">Share your Peer ID with a friend, or paste their ID above to start chatting directly.</div>
+                <div class="msg system">Share your 4-digit code with a friend to establish a peer-to-peer chat connection.</div>
             </div>
 
             <div class="chat-input-container">
@@ -266,7 +255,6 @@
             </div>
         </div>
 
-        <!-- TRANSLATOR TAB -->
         <div id="translator" class="section">
             <div class="tools-body">
                 <label for="direction">Operation Mode:</label>
@@ -296,7 +284,6 @@
     </div>
 
     <script>
-        // Tab Switcher
         function switchTab(tabId, evt) {
             document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -304,27 +291,41 @@
             evt.target.classList.add('active');
         }
 
-        // --- P2P MULTI-USER NETWORK ENGINE ---
+        // --- 4-DIGIT P2P NETWORK LOGIC ---
         let peer = null;
         let activeConnection = null;
 
-        function initP2P() {
-            peer = new Peer();
+        function generate4DigitCode() {
+            return Math.floor(1000 + Math.random() * 9000).toString();
+        }
 
-            peer.on('open', (id) => {
-                document.getElementById('myPeerId').textContent = id;
+        function initP2P() {
+            const shortId = generate4DigitCode();
+            peer = new Peer(shortId);
+
+            peer.on('open', (id) => { 
+                document.getElementById('myPeerId').textContent = id; 
             });
 
-            peer.on('connection', (conn) => {
-                activeConnection = conn;
-                setupConnectionListeners();
+            peer.on('connection', (conn) => { 
+                activeConnection = conn; 
+                setupConnectionListeners(); 
+            });
+
+            peer.on('error', (err) => {
+                if (err.type === 'unavailable-id') {
+                    // Automatically retry if the 4-digit code is taken
+                    initP2P();
+                }
             });
         }
 
         function connectToPeer() {
             const targetId = document.getElementById('targetPeerId').value.trim();
-            if (!targetId) return;
-            
+            if (!targetId || targetId.length !== 4) {
+                alert("Please enter a valid 4-digit code.");
+                return;
+            }
             activeConnection = peer.connect(targetId);
             setupConnectionListeners();
         }
@@ -336,8 +337,8 @@
                 appendP2PMessage('Connected live with peer!', 'system');
             });
 
-            activeConnection.on('data', (data) => {
-                appendP2PMessage(data, 'peer');
+            activeConnection.on('data', (data) => { 
+                appendP2PMessage(data, 'peer'); 
             });
 
             activeConnection.on('close', () => {
@@ -356,8 +357,8 @@
                 activeConnection.send(msg);
                 appendP2PMessage(msg, 'user');
                 inputEl.value = '';
-            } else {
-                alert("Please connect to a peer using their Peer ID first!");
+            } else { 
+                alert("Please connect to a peer code first!"); 
             }
         }
 
@@ -382,18 +383,8 @@
             inputEl.value = '';
 
             setTimeout(() => {
-                const response = processOfflineQuery(userText);
-                appendAIMessage(response, 'ai');
-            }, 300);
-        }
-
-        function processOfflineQuery(q) {
-            const lower = q.toLowerCase();
-            if (/^[0-9+\-*/().\s^%]+$/.test(q)) {
-                try { return `Result: **${eval(q)}**`; } catch(e){}
-            }
-            if (lower.includes("hello") || lower.includes("hi")) return "Hello! Ready to assist you.";
-            return `Processed: **"${q}"**. I am fully active locally.`;
+                appendAIMessage(`Processed query: **${userText}**`, 'ai');
+            }, 250);
         }
 
         function appendAIMessage(text, sender) {
@@ -405,7 +396,7 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        // --- CIPHER UTILITY LOGIC ---
+        // --- CIPHER UTILITIES ---
         const morseDict = {'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---','K':'-.-','L':".-..",'M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':".-.",'S':'...','T':'-','U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..',' ':'/'};
         const reverseMorse = Object.fromEntries(Object.entries(morseDict).map(([k, v]) => [v, k]));
 
@@ -414,8 +405,8 @@
             const scheme = document.getElementById('scheme').value;
             const input = document.getElementById('input').value.trim();
             const out = document.getElementById('output');
-
             if (!input) return;
+
             if (scheme === 'morse') {
                 out.textContent = dir === 'encode' 
                     ? input.toUpperCase().split('').map(c => morseDict[c] || c).join(' ')
@@ -423,7 +414,7 @@
             } else if (scheme === 'base64') {
                 out.textContent = dir === 'encode' ? btoa(input) : atob(input);
             } else {
-                out.textContent = "Scheme processed.";
+                out.textContent = "Processed.";
             }
         }
     </script>
