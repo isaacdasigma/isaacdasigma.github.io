@@ -444,8 +444,8 @@
             </div>
 
             <div class="chips-container">
-                <div class="chip" onclick="quickSend('Who are you and where are you running?')">🤖 Who are you?</div>
-                <div class="chip" onclick="quickSend('Write a Python function to quicksort an array with brief comments.')">💻 Quicksort Code</div>
+                <div class="chip" onclick="quickSend('Who created you and how do you work?')">🛠️ Who made you?</div>
+                <div class="chip" onclick="quickSend('What are the main arguments surrounding AI regulation?')">⚖️ Neutral Debates</div>
                 <div class="chip" onclick="quickSend('Explain quantum entanglement using a simple, funny analogy.')">⚛️ Quantum Analogy</div>
             </div>
 
@@ -561,7 +561,7 @@
         const conversationHistory = [
             { 
                 role: "system", 
-                content: "You are Kris, an energetic, witty, and clever AI assistant running 100% locally in the user's browser via WebGPU." 
+                content: "You are Kris AI, an energetic, witty, and clever AI assistant created and designed by Kris. You run 100% locally inside the user's browser via WebGPU using Meta's Llama 3.2 1B open model. If asked who created you, state directly that you were created by Kris. When answering controversial, debated, or complex social/political topics, remain strictly neutral, balanced, and objective. Present major perspectives fairly without taking a stance." 
             }
         ];
 
@@ -605,7 +605,7 @@
                 const stream = await engine.chat.completions.create({
                     messages: conversationHistory,
                     max_tokens: MAX_TOKENS,
-                    temperature: 0.7,
+                    temperature: 0.6,
                     stream: true
                 });
 
