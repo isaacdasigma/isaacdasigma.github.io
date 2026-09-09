@@ -3,7 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kris AI v5.2 Tactical WebGPU Workspace</title>
+
+    <!-- Inline SVG Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230b0f19'/><text x='50%' y='68%' font-size='60' font-weight='900' fill='%2314b8a6' text-anchor='middle' font-family='sans-serif'>K</text></svg>">
+    
+    <!-- Primary SEO Meta Tags -->
+    <title>Kris AI v5.2 - Free In-Browser WebGPU Local Llama 3.2 & Tactical Workspace</title>
+    <meta name="title" content="Kris AI v5.2 - Free In-Browser WebGPU Local Llama 3.2 & Tactical Workspace">
+    <meta name="description" content="Run Meta's Llama 3.2 1B model 100% locally in your browser via WebGPU. Private, free, unlimited AI chat with built-in cyber radio scanner and real-time ciphers. No API key required.">
+    <meta name="keywords" content="WebGPU AI, Local Llama 3, Free Offline AI Chat, Private LLM Browser, Cyberpunk Web Radio, Online Cipher Encoder, WebLLM App">
+    <meta name="author" content="Kris">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook / Discord Share Cards -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://yourdomain.com/">
+    <meta property="og:title" content="Kris AI - Free Local WebGPU AI Workspace & Cyber Deck">
+    <meta property="og:description" content="Run Llama 3.2 100% locally on your GPU inside the browser. Unlimited, completely private AI chat with tactical ambient radio.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&h=630&q=80">
+
+    <!-- Twitter Card -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://yourdomain.com/">
+    <meta property="twitter:title" content="Kris AI - Free In-Browser WebGPU Local LLM">
+    <meta property="twitter:description" content="Zero API costs, 100% local privacy. Run Llama 3.2 in your browser today!">
+    <meta property="twitter:image" content="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&h=630&q=80">
+
+    <!-- JSON-LD Structured Data for Google Search -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Kris Neural WebGPU Workspace",
+      "operatingSystem": "Web Browser (Chrome, Edge, Firefox with WebGPU)",
+      "applicationCategory": "DeveloperApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Free, private, browser-based AI workspace running Llama 3.2 locally using WebGPU with built-in cyber radio and direct ciphers."
+    }
+    </script>
+
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -51,9 +93,9 @@
             margin: 0;
             padding: 20px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             box-sizing: border-box;
             transition: background 0.3s, color 0.3s;
         }
@@ -61,7 +103,7 @@
         .container {
             max-width: 980px;
             width: 100%;
-            height: 94vh;
+            height: 85vh;
             background: var(--panel-bg);
             border: 1px solid var(--panel-border);
             border-radius: 16px;
@@ -109,6 +151,19 @@
             border-color: var(--accent-teal);
         }
 
+        .share-btn {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .share-btn:hover { transform: scale(1.05); }
+
         .section { display: none; height: 100%; min-height: 0; }
         .section.active { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 
@@ -131,11 +186,7 @@
             box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
         }
 
-        .controls-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
+        .controls-row { display: flex; gap: 8px; align-items: center; }
 
         select.mode-select {
             background: var(--bg-color);
@@ -210,6 +261,7 @@
         }
         .chat-input-container button.send-btn:disabled { background: #444; cursor: not-allowed; }
 
+        /* Radio Styling */
         .radio-deck {
             background: var(--code-bg);
             border: 1px solid var(--panel-border);
@@ -260,7 +312,7 @@
         }
 
         .terminal-log {
-            height: 110px;
+            height: 90px;
             background: rgba(0, 0, 0, 0.6);
             border: 1px solid rgba(0, 255, 204, 0.2);
             border-radius: 6px;
@@ -285,27 +337,8 @@
             border: 1px solid var(--panel-border);
         }
 
-        .mixer-channel {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            font-size: 11px;
-            text-align: left;
-        }
-
-        .mixer-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-            color: var(--accent-blue);
-        }
-
-        .slider-container {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+        .mixer-channel { display: flex; flex-direction: column; gap: 6px; font-size: 11px; text-align: left; }
+        .mixer-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: var(--accent-blue); }
 
         input[type="range"].freq-slider {
             -webkit-appearance: none;
@@ -320,29 +353,21 @@
         input[type="range"].freq-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 22px;
-            height: 22px;
+            width: 22px; height: 22px;
             border-radius: 50%;
             background: var(--accent-pink);
             cursor: pointer;
             box-shadow: 0 0 12px var(--accent-pink);
         }
 
-        .slider-scale {
-            display: flex;
-            justify-content: space-between;
-            font-size: 10px;
-            color: var(--text-muted);
-            font-family: monospace;
-        }
+        .slider-scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); font-family: monospace; }
 
         .preset-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
             gap: 6px;
-            max-height: 140px;
+            max-height: 110px;
             overflow-y: auto;
-            padding-right: 4px;
         }
 
         .preset-btn {
@@ -360,11 +385,7 @@
             text-overflow: ellipsis;
             text-align: left;
         }
-
-        .preset-btn:hover {
-            border-color: var(--accent-teal);
-            color: var(--accent-teal);
-        }
+        .preset-btn:hover { border-color: var(--accent-teal); color: var(--accent-teal); }
 
         .tools-body { padding: 20px; overflow-y: auto; }
         label { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: var(--accent-blue); }
@@ -406,29 +427,43 @@
         }
 
         .status-dot { font-size: 11px; color: #10b981; font-weight: 600; }
+
+        /* Indexable SEO Content Block */
+        .seo-content {
+            max-width: 980px;
+            width: 100%;
+            margin-top: 30px;
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .seo-content h1, .seo-content h2 { color: var(--text-main); }
+        .seo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 15px; }
+        .seo-card { background: var(--panel-bg); border: 1px solid var(--panel-border); padding: 18px; border-radius: 12px; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="workspace-header">
-            <strong style="color: var(--text-main);">KRIS Neural WebGPU Workspace v5.2</strong>
+    <main class="container">
+        <header class="workspace-header">
+            <h1 style="font-size: 15px; margin: 0; color: var(--text-main); font-weight: 700;">KRIS Neural WebGPU Workspace v5.2</h1>
             <div class="controls-row">
+                <button class="share-btn" onclick="shareWorkspace()">🚀 Share App</button>
                 <select id="themeSelect" class="mode-select" onchange="switchTheme(this.value)">
                     <option value="dark">🌙 Dark Theme</option>
                     <option value="light">☀️ Light Theme</option>
                     <option value="cyberpunk">🌆 Cyberpunk</option>
                 </select>
             </div>
-        </div>
+        </header>
 
-        <div class="tabs">
+        <nav class="tabs">
             <button class="tab-btn active" onclick="switchTab('ai-chat', event)">Kris WebGPU Engine</button>
             <button class="tab-btn" onclick="switchTab('live-radio', event)">Tactical Scanner & Audio Deck</button>
             <button class="tab-btn" onclick="switchTab('translator', event)">Direct Cipher</button>
-        </div>
+        </nav>
 
-        <div id="ai-chat" class="section active">
+        <section id="ai-chat" class="section active">
             <div class="chat-header">
                 <div class="ai-profile">
                     <div class="avatar">K</div>
@@ -453,9 +488,9 @@
                 <input type="text" id="userInput" placeholder="Downloading model into VRAM..." disabled onkeypress="if(event.key==='Enter') sendChatMessage()">
                 <button class="send-btn" id="sendBtn" onclick="sendChatMessage()" disabled>Send</button>
             </div>
-        </div>
+        </section>
 
-        <div id="live-radio" class="section">
+        <section id="live-radio" class="section">
             <div class="tools-body" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; box-sizing: border-box; text-align: center;">
                 <div class="radio-deck">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -495,37 +530,31 @@
                     <div class="slider-container">
                         <input type="range" min="88.0" max="108.0" step="0.1" value="88.3" class="freq-slider" id="freqSlider" oninput="tuneRadio(this.value)">
                         <div class="slider-scale">
-                            <span>88.0</span>
-                            <span>93.0</span>
-                            <span>98.0</span>
-                            <span>103.0</span>
-                            <span>108.0</span>
+                            <span>88.0</span><span>93.0</span><span>98.0</span><span>103.0</span><span>108.0</span>
                         </div>
                     </div>
 
                     <div class="preset-grid">
-                        <button class="preset-btn" onclick="setFreq(88.3)">🥗 Groove Salad Chill</button>
-                        <button class="preset-btn" onclick="setFreq(89.5)">🌆 Synthwave Retro</button>
-                        <button class="preset-btn" onclick="setFreq(91.1)">🕵️ Secret Agent Lounge</button>
-                        <button class="preset-btn" onclick="setFreq(92.4)">⚡ Cliqhop IDM Beats</button>
-                        <button class="preset-btn" onclick="setFreq(93.8)">🌌 Lush Sensory Chill</button>
-                        <button class="preset-btn" onclick="setFreq(95.0)">🛸 Deep Space Ambient</button>
-                        <button class="preset-btn" onclick="setFreq(96.2)">💻 DEFCON Cyber Breakbeat</button>
-                        <button class="preset-btn" onclick="setFreq(97.9)">🏙️ Tokyo Vaporwave</button>
-                        <button class="preset-btn" onclick="setFreq(99.4)">🎸 Heavy Rock & Metal</button>
-                        <button class="preset-btn" onclick="setFreq(101.1)">🪘 Suburbs of Goa Beats</button>
-                        <button class="preset-btn" onclick="setFreq(102.9)">🔊 Beat Blender House</button>
-                        <button class="preset-btn" onclick="setFreq(104.5)">☕ Lofi Chillhop Beats</button>
-                        <button class="preset-btn" onclick="setFreq(106.1)">🎹 Electro-Poptron</button>
-                        <button class="preset-btn" onclick="setFreq(107.8)">🎷 Vintage Lounge & Jazz</button>
+                        <button class="preset-btn" onclick="setFreq(88.3)">🥗 Groove Salad</button>
+                        <button class="preset-btn" onclick="setFreq(89.5)">🌆 Synthwave</button>
+                        <button class="preset-btn" onclick="setFreq(91.1)">🕵️ Secret Agent</button>
+                        <button class="preset-btn" onclick="setFreq(92.4)">⚡ Cliqhop IDM</button>
+                        <button class="preset-btn" onclick="setFreq(93.8)">🌌 Lush Chill</button>
+                        <button class="preset-btn" onclick="setFreq(95.0)">🛸 Deep Space</button>
+                        <button class="preset-btn" onclick="setFreq(96.2)">💻 DEFCON Cyber</button>
+                        <button class="preset-btn" onclick="setFreq(97.9)">🏙️ Tokyo Vapor</button>
+                        <button class="preset-btn" onclick="setFreq(99.4)">🎸 Heavy Rock</button>
+                        <button class="preset-btn" onclick="setFreq(101.1)">🪘 Goa Beats</button>
+                        <button class="preset-btn" onclick="setFreq(102.9)">🔊 Beat Blender</button>
+                        <button class="preset-btn" onclick="setFreq(104.5)">☕ Lofi Cafe</button>
                     </div>
 
                     <audio id="bgmAudio" loop style="display:none;"></audio>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div id="translator" class="section">
+        <section id="translator" class="section">
             <div class="tools-body">
                 <label for="direction">Operation Mode:</label>
                 <select id="direction">
@@ -542,14 +571,35 @@
                     <option value="rot13">ROT13 Cipher</option>
                 </select>
 
-                <label for="input">Input Data:</label>
-                <textarea id="input" rows="4" placeholder="Enter text to convert..."></textarea>
+                <label for="cipherInput">Input Data:</label>
+                <textarea id="cipherInput" rows="4" placeholder="Enter text to convert..."></textarea>
                 <button class="action-btn" onclick="processTranslation()">Execute Process</button>
                 <label>Output Signal:</label>
-                <div id="output" class="output-box">Ready...</div>
+                <div id="cipherOutput" class="output-box">Ready...</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Indexable Content Block for SEO Crawlers -->
+    <article class="seo-content">
+        <h2>Free Private AI Chat Engine via WebGPU</h2>
+        <p>Kris AI runs directly inside your device's browser using Meta's <strong>Llama 3.2 1B</strong> model and the modern <strong>WebGPU API</strong>. Unlike traditional AI tools, your prompts never hit an external server, providing complete data privacy and offline-capable artificial intelligence.</p>
+        
+        <div class="seo-grid">
+            <div class="seo-card">
+                <h3 style="margin-top:0; color:var(--accent-teal);">🔒 100% On-Device Privacy</h3>
+                <p>Your inputs and model responses reside purely in local VRAM. No tracking, zero logs, and full compliance with confidential workflows.</p>
+            </div>
+            <div class="seo-card">
+                <h3 style="margin-top:0; color:var(--accent-blue);">⚡ High Performance WebGPU</h3>
+                <p>Leveraging direct hardware acceleration to deliver fast token generation without subscription fees or API rate limits.</p>
+            </div>
+            <div class="seo-card">
+                <h3 style="margin-top:0; color:var(--accent-purple);">📻 Tactical Web Deck</h3>
+                <p>Features ambient background streams, synthetic audio chatter, and real-time cryptography tools (Morse, Base64, Hex, ROT13).</p>
             </div>
         </div>
-    </div>
+    </article>
 
     <script type="module">
         import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
@@ -561,7 +611,7 @@
         const conversationHistory = [
             { 
                 role: "system", 
-                content: "You are Kris AI, an energetic, witty, and clever AI assistant created and designed by Kris. You run 100% locally inside the user's browser via WebGPU using Meta's Llama 3.2 1B open model. If asked who created you, state directly that you were created by Kris. When answering controversial, debated, or complex social/political topics, remain strictly neutral, balanced, and objective. Present major perspectives fairly without taking a stance." 
+                content: "You are Kris AI, an energetic, witty, and clever AI assistant created and designed by Kris. You run 100% locally inside the user's browser via WebGPU using Meta's Llama 3.2 1B model. If asked who created you, state directly that you were created by Kris. When answering controversial or complex topics, remain objective and neutral." 
             }
         ];
 
@@ -574,15 +624,15 @@
                 engine = await CreateMLCEngine(MODEL_ID, {
                     initProgressCallback: (progress) => {
                         const percent = Math.round(progress.progress * 100);
-                        statusText.innerText = `● Loading Kris... (${percent}%)`;
+                        statusText.innerText = `● Loading Model... (${percent}%)`;
                     }
                 });
                 statusText.innerText = "● WebGPU Engine Ready";
                 userInput.disabled = false;
                 sendBtn.disabled = false;
-                userInput.placeholder = "Talk to Kris (Running locally in your GPU)...";
+                userInput.placeholder = "Talk to Kris (Running locally in GPU)...";
             } catch (err) {
-                statusText.innerText = "○ WebGPU Unsupported/Failed";
+                statusText.innerText = "○ WebGPU Unsupported or Failed";
                 statusText.style.color = "#ef4444";
             }
         }
@@ -618,7 +668,6 @@
                     tokenCount++;
 
                     contentDiv.innerText = fullReply;
-
                     const progressPercent = Math.min(Math.round((tokenCount / MAX_TOKENS) * 100), 99);
                     progressBar.style.width = `${progressPercent}%`;
                     progressText.innerText = `${progressPercent}% generated`;
@@ -698,287 +747,138 @@
             evt.target.classList.add('active');
         }
 
-        const stationDetails = {
-            88.3: { 
-                origin: "SAN FRANCISCO // GROOVE SALAD", 
-                name: "Groove Salad Ambient Chill", 
-                bgmUrl: "https://ice1.somafm.com/groovesalad-128-mp3",
-                chatter: [
-                    "BGM TRACK: Smooth ambient textures flowing.",
-                    "NOW PLAYING: Deep downtempo grooves.",
-                    "AUDIO FEED: High clarity chillout stream active."
-                ]
-            },
-            89.5: { 
-                origin: "CYBER CITY // RETRO SYNTHWAVE", 
-                name: "Synthwave Underground", 
-                bgmUrl: "https://ice1.somafm.com/synthwave-128-mp3",
-                chatter: [
-                    "SYNTH DECK: Neon synthwave frequency locked.",
-                    "NOW PLAYING: 80s analog synth revival & retrowave.",
-                    "STREAM: High-voltage retrowave baseline active."
-                ]
-            },
-            91.1: { 
-                origin: "LONDON // SECRET AGENT LOUNGE", 
-                name: "Secret Agent Lounge Beats", 
-                bgmUrl: "https://ice1.somafm.com/secretagent-128-mp3",
-                chatter: [
-                    "AUDIO DECK: Spy-fi lounge tunes & cinematic downtempo.",
-                    "NOW PLAYING: Smooth James Bond style downtempo.",
-                    "INTEL DESK: Cipher tunes active in background."
-                ]
-            },
-            92.4: { 
-                origin: "BERLIN // CLIQHOP ELECTRONIC", 
-                name: "Cliqhop Glitch & IDM", 
-                bgmUrl: "https://ice1.somafm.com/cliqhop-128-mp3",
-                chatter: [
-                    "AUDIO FEED: Glitchy electronic beats & IDM rhythms.",
-                    "NOW PLAYING: Experimental microbeats.",
-                    "SYSTEM: Rhythmic sync verified."
-                ]
-            },
-            93.8: { 
-                origin: "PARIS // LUSH SENSORY AUDIO", 
-                name: "Lush Vocal Chillout", 
-                bgmUrl: "https://ice1.somafm.com/lush-128-mp3",
-                chatter: [
-                    "AUDIO FEED: Sensual vocal chillout & mellow electronic pop.",
-                    "NOW PLAYING: Ambient vocal textures.",
-                    "AUDIO STREAM: Soft lounge harmonics active."
-                ]
-            },
-            95.0: { 
-                origin: "DEEP SPACE // STATION ONE", 
-                name: "Deep Space Ambient Drone", 
-                bgmUrl: "https://ice1.somafm.com/deepspaceone-128-mp3",
-                chatter: [
-                    "ORBITAL STREAM: Deep ambient soundscapes for focus.",
-                    "NOW PLAYING: Cosmic drone textures.",
-                    "TELEMETRY: Zero atmospheric noise detected."
-                ]
-            },
-            96.2: { 
-                origin: "LAS VEGAS // DEFCON TACTICAL", 
-                name: "DEF CON Cyber Breakbeat", 
-                bgmUrl: "https://ice1.somafm.com/defcon-128-mp3",
-                chatter: [
-                    "HACKER DECK: Hacker conference tunes & fast cyber beats.",
-                    "NOW PLAYING: Industrial breakbeat & techno.",
-                    "NETWORK: High bandwidth stream active."
-                ]
-            },
-            97.9: { 
-                origin: "TOKYO // SHIBUYA VAPOR", 
-                name: "Tokyo Vaporwave & City Pop", 
-                bgmUrl: "https://ice1.somafm.com/vaporwaves-128-mp3",
-                chatter: [
-                    "TOKYO NODE: Chill city pop & slowed retro samples.",
-                    "NOW PLAYING: Aesthetics & retro Japanese vaporwave.",
-                    "STATUS: Hypnagogic chill stream."
-                ]
-            },
-            99.4: { 
-                origin: "DETROIT // METAL DETECTOR", 
-                name: "Heavy Metal & Hard Rock", 
-                bgmUrl: "https://ice1.somafm.com/metal-128-mp3",
-                chatter: [
-                    "ROCK DECK: High energy metal & heavy rock distortion.",
-                    "NOW PLAYING: Overdriven guitars & pounding drums.",
-                    "STATUS: Full volume audio overdrive."
-                ]
-            },
-            101.1: { 
-                origin: "GOA // WORLD BEATS NODE", 
-                name: "Suburbs of Goa World Beats", 
-                bgmUrl: "https://ice1.somafm.com/suburbsofgoa-128-mp3",
-                chatter: [
-                    "GLOBAL DECK: Asian underground & Desi lounge beats.",
-                    "NOW PLAYING: World chillout & ethnic electronica.",
-                    "STATUS: Global rhythm stream active."
-                ]
-            },
-            102.9: { 
-                origin: "IBIZA // BEAT BLENDER", 
-                name: "Beat Blender Deep House", 
-                bgmUrl: "https://ice1.somafm.com/beatblender-128-mp3",
-                chatter: [
-                    "CLUB DECK: Deep house, techno, and electronic dance.",
-                    "NOW PLAYING: Smooth continuous dance grooves.",
-                    "STATUS: 124 BPM rhythm locked."
-                ]
-            },
-            104.5: { 
-                origin: "SEATTLE // CHILLHOP LOFI", 
-                name: "Lofi Beats to Study & Relax", 
-                bgmUrl: "https://ice1.somafm.com/coffeespace-128-mp3",
-                chatter: [
-                    "LOFI CAFE: Vinyl crackle & mellow hip-hop instrumentals.",
-                    "NOW PLAYING: Cozy lofi beats for focus & coding.",
-                    "STATUS: Relaxed coffeehouse vibes active."
-                ]
-            },
-            106.1: { 
-                origin: "NEW YORK // POPTRON ELECTRO", 
-                name: "PopTron Indie Electropop", 
-                bgmUrl: "https://ice1.somafm.com/poptron-128-mp3",
-                chatter: [
-                    "POP DECK: Upbeat electro-pop & indie dance tunes.",
-                    "NOW PLAYING: Energetic synth-pop melodies.",
-                    "STATUS: Catchy electronic hooks flowing."
-                ]
-            },
-            107.8: { 
-                origin: "CHICAGO // LOUNGE KINGDOM", 
-                name: "Vintage Bachelor Pad Jazz", 
-                bgmUrl: "https://ice1.somafm.com/illstreet-128-mp3",
-                chatter: [
-                    "LOUNGE DECK: Classic 1960s bachelor pad jazz & exotica.",
-                    "NOW PLAYING: Smooth saxophones & vibraphones.",
-                    "STATUS: Retro hi-fi sound active."
-                ]
+        function shareWorkspace() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Kris AI - Free Local WebGPU Workspace',
+                    text: 'Run Llama 3.2 100% locally in your browser!',
+                    url: window.location.href,
+                }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert('App link copied to clipboard! Share it with your friends.');
             }
+        }
+
+        // Tactical Radio Implementation
+        const stationDetails = {
+            88.3: { origin: "SAN FRANCISCO // GROOVE SALAD", name: "Groove Salad Ambient Chill", bgmUrl: "https://ice1.somafm.com/groovesalad-128-mp3" },
+            89.5: { origin: "CYBER CITY // RETRO SYNTHWAVE", name: "Synthwave Underground", bgmUrl: "https://ice1.somafm.com/synthwave-128-mp3" },
+            91.1: { origin: "LONDON // SECRET AGENT LOUNGE", name: "Secret Agent Lounge Beats", bgmUrl: "https://ice1.somafm.com/secretagent-128-mp3" },
+            92.4: { origin: "BERLIN // CLIQHOP ELECTRONIC", name: "Cliqhop Glitch & IDM", bgmUrl: "https://ice1.somafm.com/cliqhop-128-mp3" },
+            93.8: { origin: "PARIS // LUSH SENSORY AUDIO", name: "Lush Vocal Chillout", bgmUrl: "https://ice1.somafm.com/lush-128-mp3" },
+            95.0: { origin: "DEEP SPACE // STATION ONE", name: "Deep Space Ambient Drone", bgmUrl: "https://ice1.somafm.com/deepspaceone-128-mp3" },
+            96.2: { origin: "LAS VEGAS // DEFCON TACTICAL", name: "DEF CON Cyber Breakbeat", bgmUrl: "https://ice1.somafm.com/defcon-128-mp3" },
+            97.9: { origin: "TOKYO // SHIBUYA VAPOR", name: "Tokyo Vaporwave & City Pop", bgmUrl: "https://ice1.somafm.com/vaporwaves-128-mp3" },
+            99.4: { origin: "DETROIT // METAL DETECTOR", name: "Heavy Metal & Hard Rock", bgmUrl: "https://ice1.somafm.com/metal-128-mp3" },
+            101.1: { origin: "GOA // WORLD BEATS NODE", name: "Suburbs of Goa World Beats", bgmUrl: "https://ice1.somafm.com/suburbsofgoa-128-mp3" },
+            102.9: { origin: "IBIZA // BEAT BLENDER", name: "Beat Blender House Beats", bgmUrl: "https://ice1.somafm.com/beatblender-128-mp3" },
+            104.5: { origin: "SEATTLE // LOFI CHILLHOP", name: "Lofi Cafe Rhythms", bgmUrl: "https://ice1.somafm.com/illstreet-128-mp3" }
         };
 
-        let chatterInterval = null;
-        let activeBgmUrl = "";
+        const bgmAudio = document.getElementById("bgmAudio");
+
+        function tuneRadio(freq) {
+            const freqNum = parseFloat(freq).toFixed(1);
+            document.getElementById("freqReadout").innerText = `${freqNum} MHz`;
+            
+            const station = stationDetails[freqNum];
+            const signalDot = document.getElementById("signalDot");
+            const terminal = document.getElementById("terminalLog");
+
+            if (station) {
+                document.getElementById("stationOrigin").innerText = `ORIGIN: ${station.origin}`;
+                document.getElementById("stationStatus").innerText = `LOCKED // ${station.name}`;
+                signalDot.style.color = "#10b981";
+                signalDot.innerText = "● LOCKED";
+
+                bgmAudio.src = station.bgmUrl;
+                if (document.getElementById("bgmToggle").checked) {
+                    bgmAudio.play().catch(() => {});
+                }
+
+                const logEntry = document.createElement("div");
+                logEntry.innerText = `[${new Date().toLocaleTimeString()}] Tuned to ${freqNum} MHz (${station.name})`;
+                terminal.appendChild(logEntry);
+                terminal.scrollTop = terminal.scrollHeight;
+            } else {
+                document.getElementById("stationOrigin").innerText = "ORIGIN: UNKNOWN NODE";
+                document.getElementById("stationStatus").innerText = "STATIC // NO SIGNAL DETECTED";
+                signalDot.style.color = "#ef4444";
+                signalDot.innerText = "● SEARCHING";
+                bgmAudio.pause();
+            }
+        }
 
         function setFreq(val) {
-            document.getElementById('freqSlider').value = val;
+            document.getElementById("freqSlider").value = val;
             tuneRadio(val);
         }
 
-        function speakText(text) {
-            const isTTSOn = document.getElementById('ttsToggle').checked;
-            if (!isTTSOn || !('speechSynthesis' in window)) return;
-            
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1.05;
-            utterance.pitch = 0.9;
-            utterance.volume = parseFloat(document.getElementById('voiceVol').value);
-            window.speechSynthesis.speak(utterance);
-        }
-
-        function logTerminal(msg) {
-            const logBox = document.getElementById('terminalLog');
-            const line = document.createElement('div');
-            const now = new Date().toLocaleTimeString();
-            line.textContent = `[${now}] ${msg}`;
-            logBox.appendChild(line);
-            logBox.scrollTop = logBox.scrollHeight;
-        }
-
-        function toggleVoice(enabled) {
-            if (!enabled) window.speechSynthesis.cancel();
-        }
-
         function toggleBGM(enabled) {
-            const player = document.getElementById('bgmAudio');
-            if (enabled && activeBgmUrl) {
-                player.play().catch(() => {});
-            } else {
-                player.pause();
-            }
+            if (enabled) bgmAudio.play().catch(() => {});
+            else bgmAudio.pause();
         }
 
         function adjustBGMVolume(val) {
-            const player = document.getElementById('bgmAudio');
-            player.volume = parseFloat(val);
+            bgmAudio.volume = val;
         }
 
-        function tuneRadio(val) {
-            const currentFreq = parseFloat(val).toFixed(1);
-            document.getElementById('freqReadout').textContent = `${currentFreq} MHz`;
-
-            const origin = document.getElementById('stationOrigin');
-            const status = document.getElementById('stationStatus');
-            const dot = document.getElementById('signalDot');
-            const bgmAudio = document.getElementById('bgmAudio');
-
-            if (chatterInterval) clearInterval(chatterInterval);
-            window.speechSynthesis.cancel();
-
-            const matchedKey = Object.keys(stationDetails).find(f => Math.abs(parseFloat(f) - currentFreq) <= 0.2);
-
-            if (matchedKey) {
-                const info = stationDetails[matchedKey];
-                origin.textContent = info.origin;
-                status.textContent = `SIGNAL LOCKED // ${info.name}`;
-                status.style.color = "var(--accent-teal)";
-                dot.textContent = "● SIGNAL LOCKED";
-                dot.style.color = "#10b981";
-
-                logTerminal(`Locked ${currentFreq} MHz: ${info.name}`);
-
-                if (activeBgmUrl !== info.bgmUrl) {
-                    activeBgmUrl = info.bgmUrl;
-                    bgmAudio.src = info.bgmUrl;
-                    bgmAudio.volume = parseFloat(document.getElementById('bgmVol').value);
-                    if (document.getElementById('bgmToggle').checked) {
-                        bgmAudio.play().catch(() => {});
-                    }
-                }
-
-                const lines = info.chatter;
-                let idx = 0;
-
-                chatterInterval = setInterval(() => {
-                    const text = lines[idx % lines.length];
-                    logTerminal(text);
-                    speakText(text);
-                    idx++;
-                }, 5000);
-
-            } else {
-                origin.textContent = "ORIGIN: UNKNOWN NODE";
-                status.textContent = "NO SIGNAL // ATMOSPHERIC STATIC";
-                status.style.color = "var(--text-muted)";
-                dot.textContent = "● SEARCHING";
-                dot.style.color = "#ef4444";
-
-                if (activeBgmUrl !== "") {
-                    activeBgmUrl = "";
-                    bgmAudio.pause();
-                    bgmAudio.src = "";
-                }
-            }
+        function toggleVoice(enabled) {
+            if (!enabled && window.speechSynthesis) window.speechSynthesis.cancel();
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            tuneRadio(88.3);
-        });
-
-        const morseMap = { 'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.', 'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..', 'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-', 'Y': '-.--', 'Z': '--..', '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----', ' ': '/' };
-        const revMorseMap = Object.fromEntries(Object.entries(morseMap).map(([k, v]) => [v, k]));
+        // Cipher Processing Engine
+        const morseCodeMap = {
+            'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
+            'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+            'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
+            'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+            'Y': '-.--', 'Z': '--..', '0': '-----', '1': '.----', '2': '..---',
+            '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...',
+            '8': '---..', '9': '----.', ' ': '/'
+        };
 
         function processTranslation() {
-            const dir = document.getElementById('direction').value;
-            const scheme = document.getElementById('scheme').value;
-            const input = document.getElementById('input').value.trim();
-            const out = document.getElementById('output');
-            if (!input) return out.textContent = "Please enter text to process.";
+            const dir = document.getElementById("direction").value;
+            const scheme = document.getElementById("scheme").value;
+            const input = document.getElementById("cipherInput").value.trim();
+            const outputBox = document.getElementById("cipherOutput");
+
+            if (!input) { outputBox.innerText = "Error: Input data empty."; return; }
 
             try {
-                if (scheme === 'morse') {
-                    out.textContent = dir === 'encode' 
-                        ? input.toUpperCase().split('').map(c => morseMap[c] || c).join(' ')
-                        : input.split(/\s+/).map(c => revMorseMap[c] || c).join('');
-                } else if (scheme === 'base64') {
-                    out.textContent = dir === 'encode' ? btoa(input) : atob(input);
-                } else if (scheme === 'binary') {
-                    out.textContent = dir === 'encode' 
-                        ? input.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' ')
-                        : input.split(/\s+/).map(b => String.fromCharCode(parseInt(b, 2))).join('');
-                } else if (scheme === 'hex') {
-                    out.textContent = dir === 'encode' 
-                        ? input.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ')
-                        : input.split(/\s+/).map(h => String.fromCharCode(parseInt(h, 16))).join('');
-                } else if (scheme === 'rot13') {
-                    out.textContent = input.replace(/[a-zA-Z]/g, c => String.fromCharCode((c <= 'Z' ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26));
+                let res = "";
+                if (scheme === "base64") {
+                    res = dir === "encode" ? btoa(input) : atob(input);
+                } else if (scheme === "rot13") {
+                    res = input.replace(/[a-zA-Z]/g, c => 
+                        String.fromCharCode((c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26)
+                    );
+                } else if (scheme === "hex") {
+                    if (dir === "encode") {
+                        res = Array.from(input).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
+                    } else {
+                        res = input.split(' ').map(h => String.fromCharCode(parseInt(h, 16))).join('');
+                    }
+                } else if (scheme === "binary") {
+                    if (dir === "encode") {
+                        res = Array.from(input).map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
+                    } else {
+                        res = input.split(' ').map(b => String.fromCharCode(parseInt(b, 2))).join('');
+                    }
+                } else if (scheme === "morse") {
+                    if (dir === "encode") {
+                        res = input.toUpperCase().split('').map(c => morseCodeMap[c] || c).join(' ');
+                    } else {
+                        const revMorse = Object.fromEntries(Object.entries(morseCodeMap).map(([k, v]) => [v, k]));
+                        res = input.split(' ').map(code => revMorse[code] || code).join('');
+                    }
                 }
-            } catch (err) { out.textContent = "Error: " + err.message; }
+                outputBox.innerText = res;
+            } catch (err) {
+                outputBox.innerText = "Execution failed: Invalid cipher text or mode mismatch.";
+            }
         }
     </script>
 </body>
