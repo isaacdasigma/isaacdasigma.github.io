@@ -1,969 +1,470 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>(function(s){s.dataset.zone='12236341',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+  <meta name="monetag" content="4bc06b14f52f5220e507e5a82f76ddd6">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Code Viewer & Runner | HTML, JS, Python</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Pyodide for Python Execution in Browser -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    /* Dark Far Left Sidebar */
+    .sidebar-btn {
+      width: 100%;
+      background-color: #f3f4f6;
+      color: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .sidebar-btn:hover { background-color: #ffffff; }
+    .sidebar-btn:active { transform: scale(0.98); }
+    .dark-mode .sidebar-btn {
+      background-color: #334155;
+      color: #f8fafc;
+      border-color: #64748b;
+    }
+    .dark-mode .sidebar-btn:hover { background-color: #475569; }
+    .line-numbers {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5rem;
+      user-select: none;
+      text-align: right;
+      color: #94a3b8;
+    }
+    textarea {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5rem;
+      resize: none;
+      outline: none;
+      white-space: pre;
+    }
+    .ad-placeholder {
+      background: repeating-linear-gradient(45deg, #f8fafc, #f8fafc 10px, #f1f5f9 10px, #f1f5f9 20px);
+      border: 1px dashed #cbd5e1;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden transition-colors duration-200" id="appBody">
 
-    <!-- Canonical URL to Consolidate Google Rank Strength -->
-    <link rel="canonical" href="https://yourdomain.com/">
+  <!-- TOP AD SECTION (Header Leaderboard 728x90 / Responsive) -->
+  <header class="bg-white border-b border-slate-300 px-4 py-2 flex flex-col md:flex-row items-center justify-between gap-2 z-10 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="bg-blue-600 text-white font-black px-2.5 py-1 rounded text-sm tracking-wider">RUNNER</div>
+      <h1 class="text-base font-bold text-slate-800">Online Code Viewer & Sandbox</h1>
+    </div>
 
-    <!-- Preconnect to CDNs for Core Web Vitals Optimization -->
-    <link rel="preconnect" href="https://esm.run">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="preconnect" href="https://ice1.somafm.com">
+    <!-- AdSense Header Slot -->
+    <div class="w-full md:w-[728px] h-[60px] ad-placeholder flex items-center justify-center text-xs text-slate-400 font-medium rounded relative overflow-hidden">
+      <!-- GOOGLE ADSENSE CODE HERE -->
+      <span><i class="fa-solid fa-rectangle-ad mr-1.5 text-slate-400"></i> Advertisement Space (728x90 Leaderboard)</span>
+    </div>
+  </header>
 
-    <!-- Inline SVG Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230b0f19'/><text x='50%' y='68%' font-size='60' font-weight='900' fill='%2314b8a6' text-anchor='middle' font-family='sans-serif'>K</text></svg>">
-    
-    <!-- High-CTR Bracket Title & Bulleted Meta Description -->
-    <title>[100% Free] Private Local AI Chat in Browser (WebGPU) - Llama 3.2</title>
-    <meta name="title" content="[100% Free] Private Local AI Chat in Browser (WebGPU) - Llama 3.2">
-    <meta name="description" content="⚡ Run Meta's Llama 3.2 100% locally in your web browser. Created by Isaac. ✔ Zero API Keys Required ✔ 100% Local GPU Privacy ✔ Free & Offline AI Chat.">
-    <meta name="keywords" content="Free local AI chat, Run Llama 3 in browser, WebGPU AI online, Private offline LLM, No API key AI chat, In-browser artificial intelligence, WebLLM local models">
-    <meta name="author" content="Isaac">
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-    
-    <!-- Open Graph / Social Media Preview Cards -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://yourdomain.com/">
-    <meta property="og:title" content="[100% Free] Private Local AI Chat in Browser (WebGPU)">
-    <meta property="og:description" content="Run Llama 3.2 100% locally on your GPU inside the browser. Created by Isaac with zero API fees and complete privacy.">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&h=630&q=80">
+  <!-- MAIN APP CONTAINER -->
+  <div class="flex flex-1 overflow-hidden">
 
-    <!-- Twitter Card -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://yourdomain.com/">
-    <meta property="twitter:title" content="[100% Free] Private Local AI Chat in Browser - WebGPU">
-    <meta property="twitter:description" content="Zero API costs, 100% local privacy. Run Kris AI in your browser today!">
-    <meta property="twitter:image" content="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&h=630&q=80">
+    <!-- FAR-LEFT DARK SIDEBAR -->
+    <aside class="w-48 bg-[#2d3035] p-2.5 flex flex-col gap-2 shrink-0 overflow-y-auto z-20">
+      
+      <!-- Language Selector -->
+      <div class="mb-1">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Language</label>
+        <select id="langSelect" onchange="changeLanguage(this.value)" class="w-full bg-slate-800 text-white text-xs font-semibold rounded p-1.5 border border-slate-600 focus:outline-none cursor-pointer">
+          <option value="html">HTML / CSS / JS</option>
+          <option value="js">JavaScript (Node/Browser)</option>
+          <option value="python">Python 3 (Pyodide)</option>
+        </select>
+      </div>
 
-    <!-- Google Rich Snippet Structured Data (Software + Breadcrumb + FAQ Schema) -->
-    <script type="application/ld+json">
-    [
-      {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Local AI Tools",
-            "item": "https://yourdomain.com/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "WebGPU Llama 3.2 Workspace",
-            "item": "https://yourdomain.com/#ai-chat"
-          }
-        ]
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Kris AI Local WebGPU Workspace",
-        "operatingSystem": "Web Browser (Chrome, Edge, Firefox with WebGPU)",
-        "applicationCategory": "DeveloperApplication",
-        "author": {
-          "@type": "Person",
-          "name": "Isaac"
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "description": "Free, private, browser-based local AI workspace created by Isaac running Llama 3.2 directly on GPU via WebGPU."
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "How do I run AI locally in my browser?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "You can run AI locally in your web browser using WebGPU technology. Kris AI executes directly on your computer's GPU without sending data to external servers."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Is this local AI chat free and private?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Yes, 100% free and completely private. Because model calculations happen directly in your local browser VRAM, your text prompts and responses never leave your device."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Do I need an API key or account?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "No API keys, registration, or credit cards are required. The application loads open-source weights into your WebGPU cache automatically."
-            }
-          }
-        ]
-      }
-    ]
-    </script>
+      <hr class="border-slate-700 my-0.5">
 
-    <style>
-        :root {
-            --bg-color: #0b0f19;
-            --panel-bg: #151d2a;
-            --panel-border: #2a364f;
-            --accent-teal: #14b8a6;
-            --accent-blue: #38bdf8;
-            --accent-purple: #a855f7;
-            --accent-pink: #ec4899;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --code-bg: #070a10;
-        }
+      <!-- Action Buttons -->
+      <button class="sidebar-btn" onclick="toggleFullPreview()">
+        <i class="fa-solid fa-eye text-slate-600"></i> Preview (Full page)
+      </button>
+      
+      <button class="sidebar-btn" onclick="toggleHighlight()">
+        <i class="fa-solid fa-highlighter text-slate-600"></i> Highlight Mode
+      </button>
 
-        body.theme-light {
-            --bg-color: #f1f5f9;
-            --panel-bg: #ffffff;
-            --panel-border: #cbd5e1;
-            --accent-teal: #0d9488;
-            --accent-blue: #0284c7;
-            --accent-purple: #9333ea;
-            --accent-pink: #db2777;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --code-bg: #f8fafc;
-        }
+      <button class="sidebar-btn" onclick="formatCode()">
+        <i class="fa-solid fa-bars-staggered text-slate-600"></i> Format Code
+      </button>
 
-        body.theme-cyberpunk {
-            --bg-color: #050505;
-            --panel-bg: #0d0d15;
-            --panel-border: #222244;
-            --accent-teal: #00ffcc;
-            --accent-blue: #00bfff;
-            --accent-purple: #ff00ff;
-            --accent-pink: #ff0055;
-            --text-main: #00ffcc;
-            --text-muted: #8800ff;
-            --code-bg: #020208;
-        }
+      <button class="sidebar-btn" onclick="runCodeManual()">
+        <i class="fa-solid fa-play text-green-600"></i> Run / Execute
+      </button>
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-            transition: background 0.3s, color 0.3s;
-        }
+      <button class="sidebar-btn" onclick="loadSample()">
+        <i class="fa-solid fa-file-code text-slate-600"></i> Load Sample
+      </button>
 
-        .container {
-            max-width: 980px;
-            width: 100%;
-            height: 82vh;
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+      <button class="sidebar-btn" onclick="clearCode()">
+        <i class="fa-solid fa-trash-can text-slate-600"></i> Clear
+      </button>
 
-        .workspace-header {
-            padding: 12px 20px;
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid var(--panel-border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
+      <button class="sidebar-btn" onclick="document.getElementById('fileInput').click()">
+        <i class="fa-solid fa-upload text-slate-600"></i> Import from file
+      </button>
+      <input type="file" id="fileInput" class="hidden" accept=".html,.js,.py,.txt" onchange="importFile(event)">
 
-        .tabs {
-            display: flex;
-            gap: 8px;
-            padding: 10px 20px;
-            background: rgba(0, 0, 0, 0.15);
-            border-bottom: 1px solid var(--panel-border);
-            flex-shrink: 0;
-        }
+      <button class="sidebar-btn" onclick="exportFile()">
+        <i class="fa-solid fa-download text-slate-600"></i> Export to file
+      </button>
 
-        .tab-btn {
-            flex: 1;
-            padding: 8px 14px;
-            background: var(--bg-color);
-            color: var(--text-muted);
-            border: 1px solid var(--panel-border);
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.2s ease;
-        }
+      <button class="sidebar-btn" onclick="toggleDarkMode()">
+        <i class="fa-solid fa-moon text-slate-600"></i> <span id="darkBtnText">Dark mode</span>
+      </button>
 
-        .tab-btn.active {
-            background: var(--accent-teal);
-            color: #ffffff;
-            border-color: var(--accent-teal);
-        }
+      <div class="mt-auto pt-2 border-t border-slate-700 text-[10px] text-slate-400 text-center">
+        Client-side & Safe
+      </div>
+    </aside>
 
-        .share-btn {
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
-            color: white;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 12px;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .share-btn:hover { transform: scale(1.05); }
+    <!-- SPLIT WORKSPACE: EDITOR & PREVIEW -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-200 gap-px">
 
-        .section { display: none; height: 100%; min-height: 0; }
-        .section.active { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+      <!-- LEFT: CODE EDITOR PANE -->
+      <section id="editorPane" class="flex-1 flex flex-col bg-white overflow-hidden relative">
+        <!-- Editor Bar -->
+        <div class="bg-slate-100 border-b border-slate-300 px-3 py-1.5 flex items-center justify-between text-xs text-slate-600 font-semibold">
+          <span id="editorLabel"><i class="fa-brands fa-html5 text-orange-600 mr-1.5"></i> HTML Editor</span>
+          <div class="flex items-center gap-3 text-[11px] text-slate-500">
+            <span id="lineCount">Lines: 1</span>
+            <span id="charCount">Chars: 0</span>
+          </div>
+        </div>
 
-        .chat-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 20px;
-            background: rgba(0, 0, 0, 0.1);
-            border-bottom: 1px solid var(--panel-border);
-            flex-shrink: 0;
-        }
-        .ai-profile { display: flex; align-items: center; gap: 12px; }
-        .avatar {
-            width: 38px; height: 38px;
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 800; color: #fff; font-size: 18px;
-            box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
-        }
+        <!-- Textarea with Line Numbers -->
+        <div class="flex-1 flex overflow-hidden relative bg-white">
+          <div id="lineNumbers" class="line-numbers w-10 py-3 pr-2 bg-slate-50 border-r border-slate-200 select-none overflow-hidden">1</div>
+          <textarea id="codeEditor" spellcheck="false" class="flex-1 p-3 border-none bg-transparent text-slate-900 font-mono focus:outline-none overflow-auto" placeholder="Type or paste your code here..." oninput="handleInput()" onscroll="syncScroll()"></textarea>
+        </div>
+      </section>
 
-        .controls-row { display: flex; gap: 8px; align-items: center; }
+      <!-- RIGHT: OUTPUT / PREVIEW PANE -->
+      <section id="previewPane" class="flex-1 flex flex-col bg-white overflow-hidden relative border-l border-slate-300">
+        <!-- Preview Bar -->
+        <div class="bg-slate-100 border-b border-slate-300 px-3 py-1.5 flex items-center justify-between text-xs text-slate-600 font-semibold">
+          <span id="outputLabel"><i class="fa-solid fa-desktop mr-1.5 text-blue-600"></i> Live Preview</span>
+          <div class="flex items-center gap-2">
+            <span id="pyStatus" class="hidden text-[11px] text-amber-600 font-medium"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Pyodide Loading...</span>
+            <button onclick="clearConsole()" id="clearConsoleBtn" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded text-[10px]">Clear Output</button>
+            
+            <!-- PROMINENT POPOUT BUTTON -->
+            <button onclick="popoutWindow()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2.5 py-1 rounded text-xs transition-all shadow-sm flex items-center gap-1">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Popout
+            </button>
+          </div>
+        </div>
 
-        select.mode-select {
-            background: var(--bg-color);
-            color: var(--text-main);
-            border: 1px solid var(--panel-border);
-            border-radius: 6px;
-            padding: 4px 8px;
-            font-size: 12px;
-            outline: none;
-        }
+        <!-- USER NOTICE BANNER -->
+        <div id="popoutNotice" class="bg-amber-50 border-b border-amber-200 px-3 py-2 text-xs text-amber-900 flex items-center justify-between font-medium">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
+            <span><strong>Notice:</strong> To render and run your web page, click <button onclick="popoutWindow()" class="underline font-bold hover:text-blue-700">Popout</button> in the top right.</span>
+          </div>
+          <button onclick="document.getElementById('popoutNotice').style.display='none'" class="text-amber-500 hover:text-amber-800 text-xs font-bold px-1">&times;</button>
+        </div>
 
-        .chat-box {
-            flex: 1;
-            min-height: 0; 
-            background: var(--code-bg);
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
+        <!-- Display Frame (HTML iframe OR JS/Python Console) -->
+        <div class="flex-1 relative bg-white overflow-hidden flex flex-col">
+          <iframe id="previewIframe" class="w-full h-full border-none bg-white" sandbox="allow-scripts allow-modals allow-forms"></iframe>
+          <div id="consoleTerminal" class="hidden w-full h-full bg-slate-900 text-green-400 p-4 font-mono text-xs overflow-auto whitespace-pre-wrap leading-relaxed"></div>
+        </div>
+      </section>
 
-        .msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; position: relative; }
-        .msg.user { background: var(--accent-teal); color: #ffffff; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg.ai { background: var(--panel-bg); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid var(--panel-border); width: 80%; }
+    </main>
+  </div>
 
-        .progress-container { width: 100%; background-color: #2a364f; border-radius: 4px; overflow: hidden; margin-top: 10px; height: 6px; display: none; }
-        .progress-bar { width: 0%; height: 100%; background-color: var(--accent-teal); transition: width 0.1s linear; }
-        .progress-text { font-size: 0.75em; color: var(--text-muted); margin-top: 4px; text-align: right; }
+  <!-- BOTTOM AD SECTION (Footer Banner 728x90 / Responsive) -->
+  <footer class="bg-white border-t border-slate-300 px-4 py-1.5 flex items-center justify-center shrink-0 z-10">
+    <div class="w-full md:w-[728px] h-[50px] ad-placeholder flex items-center justify-center text-xs text-slate-400 font-medium rounded relative overflow-hidden">
+      <!-- GOOGLE ADSENSE CODE HERE -->
+      <span><i class="fa-solid fa-rectangle-ad mr-1.5 text-slate-400"></i> Bottom Ad Space (Leaderboard Banner)</span>
+    </div>
+  </footer>
 
-        .chips-container {
-            display: flex;
-            gap: 6px;
-            padding: 8px 20px;
-            background: var(--bg-color);
-            overflow-x: auto;
-            border-top: 1px solid var(--panel-border);
-            flex-shrink: 0;
-        }
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let currentLang = 'html';
+    let pyodideInstance = null;
+    let pyodideReady = false;
 
-        .chip {
-            background: var(--panel-bg);
-            color: var(--accent-blue);
-            border: 1px solid var(--panel-border);
-            padding: 4px 10px;
-            border-radius: 16px;
-            font-size: 11px;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: 0.2s;
-        }
-        .chip:hover { background: var(--accent-blue); color: var(--bg-color); }
+    const editor = document.getElementById('codeEditor');
+    const lineNumbers = document.getElementById('lineNumbers');
+    const iframe = document.getElementById('previewIframe');
+    const consoleTerm = document.getElementById('consoleTerminal');
+    const pyStatus = document.getElementById('pyStatus');
+    const clearConsoleBtn = document.getElementById('clearConsoleBtn');
 
-        .chat-input-container {
-            padding: 12px 16px;
-            background: rgba(0,0,0,0.2);
-            border-top: 1px solid var(--panel-border);
-            display: flex;
-            gap: 8px;
-            flex-shrink: 0; 
-        }
-        .chat-input-container input { flex: 1; }
-
-        .chat-input-container button.send-btn {
-            padding: 0 20px;
-            background: var(--accent-blue);
-            color: #fff;
-            font-weight: 700;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .chat-input-container button.send-btn:disabled { background: #444; cursor: not-allowed; }
-
-        /* Radio Styling */
-        .radio-deck {
-            background: var(--code-bg);
-            border: 1px solid var(--panel-border);
-            border-radius: 12px;
-            padding: 20px;
-            max-width: 760px;
-            width: 95%;
-            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.9);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .radio-screen {
-            background: #040d08;
-            border: 2px solid #00ffcc33;
-            border-radius: 8px;
-            padding: 14px;
-            font-family: 'Courier New', Courier, monospace;
-            box-shadow: inset 0 0 12px rgba(0, 255, 204, 0.15);
-            text-align: left;
-        }
-
-        .freq-display {
-            font-size: 32px;
-            font-weight: 900;
-            color: var(--accent-teal);
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px var(--accent-teal);
-            margin-bottom: 2px;
-        }
-
-        .station-origin {
-            font-size: 11px;
-            color: var(--accent-pink);
-            font-weight: 800;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-
-        .station-status {
-            font-size: 12px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 700;
-        }
-
-        .terminal-log {
-            height: 90px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(0, 255, 204, 0.2);
-            border-radius: 6px;
-            padding: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            color: #10b981;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            text-align: left;
-        }
-
-        .audio-mixer {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            background: rgba(0,0,0,0.3);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--panel-border);
-        }
-
-        .mixer-channel { display: flex; flex-direction: column; gap: 6px; font-size: 11px; text-align: left; }
-        .mixer-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: var(--accent-blue); }
-
-        input[type="range"].freq-slider {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 12px;
-            border-radius: 6px;
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            outline: none;
-        }
-
-        input[type="range"].freq-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 22px; height: 22px;
-            border-radius: 50%;
-            background: var(--accent-pink);
-            cursor: pointer;
-            box-shadow: 0 0 12px var(--accent-pink);
-        }
-
-        .slider-scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); font-family: monospace; }
-
-        .preset-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 6px;
-            max-height: 110px;
-            overflow-y: auto;
-        }
-
-        .preset-btn {
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            color: var(--text-muted);
-            padding: 6px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-family: monospace;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            text-align: left;
-        }
-        .preset-btn:hover { border-color: var(--accent-teal); color: var(--accent-teal); }
-
-        .tools-body { padding: 20px; overflow-y: auto; }
-        label { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; color: var(--accent-blue); }
-        select, textarea, input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--panel-border);
-            background: var(--bg-color);
-            color: var(--text-main);
-            font-size: 14px;
-            box-sizing: border-box;
-            outline: none;
-        }
-
-        button.action-btn {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: none;
-            background: var(--accent-teal);
-            color: #fff;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 14px;
-        }
-
-        .output-box {
-            background: var(--code-bg);
-            padding: 14px;
-            border-radius: 8px;
-            border: 1px solid var(--panel-border);
-            min-height: 60px;
-            font-family: monospace;
-            font-size: 13px;
-            white-space: pre-wrap;
-            word-break: break-all;
-            margin-top: 6px;
-        }
-
-        .status-dot { font-size: 11px; color: #10b981; font-weight: 600; }
-
-        /* Indexable SEO Content Block optimized for Search Engine Crawlers */
-        .seo-content {
-            max-width: 980px;
-            width: 100%;
-            margin-top: 30px;
-            color: var(--text-muted);
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        .seo-content h2, .seo-content h3 { color: var(--text-main); margin-bottom: 8px; }
-        .seo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 15px; }
-        .seo-card { background: var(--panel-bg); border: 1px solid var(--panel-border); padding: 18px; border-radius: 12px; }
-        
-        .faq-section { margin-top: 25px; background: var(--panel-bg); border: 1px solid var(--panel-border); padding: 20px; border-radius: 12px; }
-        .faq-item { margin-bottom: 16px; }
-        .faq-item h4 { color: var(--accent-teal); margin: 0 0 6px 0; font-size: 15px; }
-        .faq-item p { margin: 0; font-size: 13px; color: var(--text-muted); }
-    </style>
+    const SAMPLES = {
+      html: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 40px; background: #f0fdf4; }
+    h1 { color: #15803d; }
+    button { background: #22c55e; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+  </style>
 </head>
 <body>
+  <h1>Hello from HTML Previewer!</h1>
+  <p>Edit on the left to see live changes on the right.</p>
+  <button onclick="alert('It works!')">Click Me</button>
+</body>
+</html>`,
+      js: `// JavaScript Live Sandbox
+console.log("Initializing JavaScript Execution...");
 
-    <main class="container">
-        <header class="workspace-header">
-            <h1 style="font-size: 15px; margin: 0; color: var(--text-main); font-weight: 700;">Kris AI - Free WebGPU Workspace (Created by Isaac)</h1>
-            <div class="controls-row">
-                <button class="share-btn" onclick="shareWorkspace()">🚀 Share App</button>
-                <select id="themeSelect" class="mode-select" onchange="switchTheme(this.value)">
-                    <option value="dark">🌙 Dark Theme</option>
-                    <option value="light">☀️ Light Theme</option>
-                    <option value="cyberpunk">🌆 Cyberpunk</option>
-                </select>
-            </div>
-        </header>
+function calculateStats(numbers) {
+  const sum = numbers.reduce((acc, curr) => acc + curr, 0);
+  const avg = sum / numbers.length;
+  return { sum, avg };
+}
 
-        <nav class="tabs">
-            <button class="tab-btn active" onclick="switchTab('ai-chat', event)">Kris WebGPU Engine</button>
-            <button class="tab-btn" onclick="switchTab('live-radio', event)">Tactical Scanner & Audio Deck</button>
-            <button class="tab-btn" onclick="switchTab('translator', event)">Direct Cipher</button>
-        </nav>
+const data = [10, 20, 30, 40, 50];
+console.log("Input Array:", data);
+console.log("Calculated Stats:", calculateStats(data));
+console.warn("This is an example warning log!");
+`,
+      python: `# Python 3 In-Browser Runner (Pyodide)
+import math
 
-        <section id="ai-chat" class="section active">
-            <div class="chat-header">
-                <div class="ai-profile">
-                    <div class="avatar">K</div>
-                    <div>
-                        <strong style="display: block; font-size: 14px;">Kris AI (Llama 3.2 1B)</strong>
-                        <span class="status-dot" id="statusText">● Initializing WebGPU...</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="chat-box" id="chatBox">
-                <div class="msg ai"><p>⚡ <strong>Kris AI is online!</strong><br>Created by Isaac. Running fully inside your local VRAM. Ask questions, request code, or explore ideas privately with zero server fees.</p></div>
-            </div>
+def generate_fibonacci(n):
+    fib = [0, 1]
+    for i in range(2, n):
+        fib.append(fib[-1] + fib[-2])
+    return fib
 
-            <div class="chips-container">
-                <div class="chip" onclick="quickSend('Who created you and how do you work?')">🛠️ Who made you?</div>
-                <div class="chip" onclick="quickSend('What are the main arguments surrounding AI regulation?')">⚖️ Neutral Debates</div>
-                <div class="chip" onclick="quickSend('Explain quantum entanglement using a simple, funny analogy.')">⚛️ Quantum Analogy</div>
-            </div>
+print("Executing Python 3 Script...")
+print("Square Root of 144:", math.sqrt(144))
+print("Fibonacci Sequence (First 10):", generate_fibonacci(10))
+`
+    };
 
-            <div class="chat-input-container">
-                <input type="text" id="userInput" placeholder="Downloading model into local VRAM..." disabled onkeypress="if(event.key==='Enter') sendChatMessage()">
-                <button class="send-btn" id="sendBtn" onclick="sendChatMessage()" disabled>Send</button>
-            </div>
-        </section>
+    function handleInput() {
+      updateLineNumbers();
+      updateCounts();
+      if (currentLang === 'html') {
+        renderHTML();
+      }
+    }
 
-        <section id="live-radio" class="section">
-            <div class="tools-body" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; box-sizing: border-box; text-align: center;">
-                <div class="radio-deck">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 11px; font-weight: 800; color: var(--accent-pink); letter-spacing: 1px;">GLOBAL TACTICAL SCANNER & MUSIC DECK</span>
-                        <span id="signalDot" style="font-size: 10px; color: #ef4444;">● SEARCHING</span>
-                    </div>
+    function syncScroll() {
+      lineNumbers.scrollTop = editor.scrollTop;
+    }
 
-                    <div class="radio-screen">
-                        <div class="freq-display" id="freqReadout">88.3 MHz</div>
-                        <div class="station-origin" id="stationOrigin">ORIGIN: UNKNOWN NODE</div>
-                        <div class="station-status" id="stationStatus">NO SIGNAL // SEARCHING WAVELENGTHS</div>
-                    </div>
+    function updateLineNumbers() {
+      const lines = editor.value.split('\n').length;
+      let lineStr = '';
+      for (let i = 1; i <= lines; i++) {
+        lineStr += i + '<br>';
+      }
+      lineNumbers.innerHTML = lineStr;
+    }
 
-                    <div class="terminal-log" id="terminalLog">
-                        <div>[SYSTEM] Audio console ready. Choose a music stream or frequency below.</div>
-                    </div>
+    function updateCounts() {
+      const text = editor.value;
+      const lines = text.split('\n').length;
+      document.getElementById('lineCount').innerText = 'Lines: ' + lines;
+      document.getElementById('charCount').innerText = 'Chars: ' + text.length;
+    }
 
-                    <div class="audio-mixer">
-                        <div class="mixer-channel">
-                            <div class="mixer-header">
-                                <span>🗣️ VOICE CHATTER</span>
-                                <input type="checkbox" id="ttsToggle" checked onchange="toggleVoice(this.checked)">
-                            </div>
-                            <label style="margin:2px 0 0 0; font-size:10px; color:var(--text-muted);">Synth Speech Volume</label>
-                            <input type="range" id="voiceVol" min="0" max="1" step="0.05" value="0.8">
-                        </div>
-                        <div class="mixer-channel">
-                            <div class="mixer-header">
-                                <span>🎵 MUSIC STREAM</span>
-                                <input type="checkbox" id="bgmToggle" checked onchange="toggleBGM(this.checked)">
-                            </div>
-                            <label style="margin:2px 0 0 0; font-size:10px; color:var(--text-muted);">Background Stream Volume</label>
-                            <input type="range" id="bgmVol" min="0" max="1" step="0.05" value="0.5" oninput="adjustBGMVolume(this.value)">
-                        </div>
-                    </div>
+    function changeLanguage(lang) {
+      currentLang = lang;
+      const label = document.getElementById('editorLabel');
+      const outLabel = document.getElementById('outputLabel');
 
-                    <div class="slider-container">
-                        <input type="range" min="88.0" max="108.0" step="0.1" value="88.3" class="freq-slider" id="freqSlider" oninput="tuneRadio(this.value)">
-                        <div class="slider-scale">
-                            <span>88.0</span><span>93.0</span><span>98.0</span><span>103.0</span><span>108.0</span>
-                        </div>
-                    </div>
+      if (lang === 'html') {
+        label.innerHTML = '<i class="fa-brands fa-html5 text-orange-600 mr-1.5"></i> HTML Editor';
+        outLabel.innerHTML = '<i class="fa-solid fa-desktop mr-1.5 text-blue-600"></i> Live Preview';
+        iframe.classList.remove('hidden');
+        consoleTerm.classList.add('hidden');
+        clearConsoleBtn.classList.add('hidden');
+        pyStatus.classList.add('hidden');
+        renderHTML();
+      } else if (lang === 'js') {
+        label.innerHTML = '<i class="fa-brands fa-js text-yellow-500 mr-1.5"></i> JavaScript Editor';
+        outLabel.innerHTML = '<i class="fa-solid fa-terminal mr-1.5 text-green-600"></i> Console Output';
+        iframe.classList.add('hidden');
+        consoleTerm.classList.remove('hidden');
+        clearConsoleBtn.classList.remove('hidden');
+        pyStatus.classList.add('hidden');
+        runJS();
+      } else if (lang === 'python') {
+        label.innerHTML = '<i class="fa-brands fa-python text-blue-500 mr-1.5"></i> Python Editor';
+        outLabel.innerHTML = '<i class="fa-solid fa-terminal mr-1.5 text-green-600"></i> Python Terminal';
+        iframe.classList.add('hidden');
+        consoleTerm.classList.remove('hidden');
+        clearConsoleBtn.classList.remove('hidden');
+        initPyodideAndRun();
+      }
+    }
 
-                    <div class="preset-grid">
-                        <button class="preset-btn" onclick="setFreq(88.3)">🥗 Groove Salad</button>
-                        <button class="preset-btn" onclick="setFreq(89.5)">🌆 Synthwave</button>
-                        <button class="preset-btn" onclick="setFreq(91.1)">🕵️ Secret Agent</button>
-                        <button class="preset-btn" onclick="setFreq(92.4)">⚡ Cliqhop IDM</button>
-                        <button class="preset-btn" onclick="setFreq(93.8)">🌌 Lush Chill</button>
-                        <button class="preset-btn" onclick="setFreq(95.0)">🛸 Deep Space</button>
-                        <button class="preset-btn" onclick="setFreq(96.2)">💻 DEFCON Cyber</button>
-                        <button class="preset-btn" onclick="setFreq(97.9)">🏙️ Tokyo Vapor</button>
-                        <button class="preset-btn" onclick="setFreq(99.4)">🎸 Heavy Rock</button>
-                        <button class="preset-btn" onclick="setFreq(101.1)">🪘 Goa Beats</button>
-                        <button class="preset-btn" onclick="setFreq(102.9)">🔊 Beat Blender</button>
-                        <button class="preset-btn" onclick="setFreq(104.5)">☕ Lofi Cafe</button>
-                    </div>
+    function renderHTML() {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(editor.value);
+      doc.close();
+    }
 
-                    <audio id="bgmAudio" loop style="display:none;"></audio>
-                </div>
-            </div>
-        </section>
+    function runJS() {
+      consoleTerm.innerText = '';
+      const logs = [];
+      const customConsole = {
+        log: (...args) => logs.push('[LOG] ' + args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : a).join(' ')),
+        warn: (...args) => logs.push('[WARN] ' + args.join(' ')),
+        error: (...args) => logs.push('[ERROR] ' + args.join(' '))
+      };
 
-        <section id="translator" class="section">
-            <div class="tools-body">
-                <label for="direction">Operation Mode:</label>
-                <select id="direction">
-                    <option value="encode">Encode (Plaintext ➔ Cipher)</option>
-                    <option value="decode">Decode (Cipher ➔ Plaintext)</option>
-                </select>
+      try {
+        const runFn = new Function('console', editor.value);
+        runFn(customConsole);
+        consoleTerm.innerText = logs.length > 0 ? logs.join('\n') : 'Code executed cleanly with no output.';
+      } catch (err) {
+        consoleTerm.innerText = logs.join('\n') + '\n[RUNTIME ERROR]: ' + err.message;
+      }
+    }
 
-                <label for="scheme">Encoding Scheme:</label>
-                <select id="scheme">
-                    <option value="morse">Morse Code</option>
-                    <option value="base64">Base64</option>
-                    <option value="binary">Binary (8-bit ASCII)</option>
-                    <option value="hex">Hexadecimal</option>
-                    <option value="rot13">ROT13 Cipher</option>
-                </select>
-
-                <label for="cipherInput">Input Data:</label>
-                <textarea id="cipherInput" rows="4" placeholder="Enter text to convert..."></textarea>
-                <button class="action-btn" onclick="processTranslation()">Execute Process</button>
-                <label>Output Signal:</label>
-                <div id="cipherOutput" class="output-box">Ready...</div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Indexable Content Block for Google Crawler Keyword Matching -->
-    <article class="seo-content">
-        <h2>Run Local Private AI Chat directly in your browser with WebGPU</h2>
-        <p>This web application executes Meta's <strong>Llama 3.2 1B model</strong> 100% locally inside your browser using hardware acceleration from the <strong>WebGPU API</strong>. Designed and created by <strong>Isaac</strong>, enjoy zero API fees, complete prompt privacy, and instant offline capabilities after initial download.</p>
-        
-        <div class="seo-grid">
-            <div class="seo-card">
-                <h3 style="margin-top:0; color:var(--accent-teal);">🔒 100% Local Privacy</h3>
-                <p>All neural execution occurs inside your browser VRAM. Your private inputs never leave your device or reach cloud servers.</p>
-            </div>
-            <div class="seo-card">
-                <h3 style="margin-top:0; color:var(--accent-blue);">⚡ Hardware Accelerated</h3>
-                <p>Powered by modern WebGPU execution engines (`@mlc-ai/web-llm`), delivering near-instant generation speed on your GPU.</p>
-            </div>
-            <div class="seo-card">
-                <h3 style="margin-top:0; color:var(--accent-purple);">📻 Productivity & Cipher Deck</h3>
-                <p>Includes high-tech background music streams and real-time cryptography tools (Morse, Base64, Binary, Hex, ROT13).</p>
-            </div>
-        </div>
-
-        <!-- Google FAQ Section for Rich Search Snippets -->
-        <div class="faq-section">
-            <h2>Frequently Asked Questions</h2>
-            <div class="faq-item">
-                <h4>How do I run AI locally in my browser?</h4>
-                <p>Simply open this webpage on any modern browser supporting WebGPU (Chrome, Edge, Firefox Nightly). The application downloads model weights straight into your GPU cache for local, offline execution.</p>
-            </div>
-            <div class="faq-item">
-                <h4>Is this local AI chat free and private?</h4>
-                <p>Yes, it is 100% free and completely private. Because model inference happens entirely on your GPU, no prompt or response data ever leaves your device.</p>
-            </div>
-            <div class="faq-item">
-                <h4>Do I need an API key or account?</h4>
-                <p>No API key, account creation, or credit card is required. You can start generating AI responses immediately.</p>
-            </div>
-        </div>
-    </article>
-
-    <script type="module">
-        import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
-
-        const MODEL_ID = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
-        const MAX_TOKENS = 512;
-        let engine;
-
-        const conversationHistory = [
-            { 
-                role: "system", 
-                content: "You are Kris AI, an energetic, witty, and clever AI assistant created and designed by Isaac. You run 100% locally inside the user's browser via WebGPU using Meta's Llama 3.2 1B model. If asked who created you, state directly and proudly that you were created by Isaac. When answering controversial or complex topics, remain objective and neutral." 
-            }
-        ];
-
-        const statusText = document.getElementById("statusText");
-        const userInput = document.getElementById("userInput");
-        const sendBtn = document.getElementById("sendBtn");
-
-        async function init() {
-            try {
-                engine = await CreateMLCEngine(MODEL_ID, {
-                    initProgressCallback: (progress) => {
-                        const percent = Math.round(progress.progress * 100);
-                        statusText.innerText = `● Loading Model... (${percent}%)`;
-                    }
-                });
-                statusText.innerText = "● WebGPU Engine Ready";
-                userInput.disabled = false;
-                sendBtn.disabled = false;
-                userInput.placeholder = "Talk to Kris (Running locally in GPU)...";
-            } catch (err) {
-                statusText.innerText = "○ WebGPU Unsupported or Failed";
-                statusText.style.color = "#ef4444";
-            }
+    async function initPyodideAndRun() {
+      if (!pyodideReady) {
+        pyStatus.classList.remove('hidden');
+        consoleTerm.innerText = 'Loading Pyodide Python WebAssembly Engine... Please wait...';
+        try {
+          pyodideInstance = await loadPyodide();
+          pyodideReady = true;
+          pyStatus.classList.add('hidden');
+        } catch (err) {
+          consoleTerm.innerText = 'Error loading Pyodide: ' + err.message;
+          return;
         }
+      }
+      runPython();
+    }
 
-        window.sendChatMessage = async function() {
-            const text = userInput.value.trim();
-            if (!text || !engine) return;
+    async function runPython() {
+      if (!pyodideInstance) return;
+      consoleTerm.innerText = 'Running Python code...\n';
+      pyodideInstance.setStdout({ batched: (str) => { consoleTerm.innerText += str + '\n'; } });
+      pyodideInstance.setStderr({ batched: (str) => { consoleTerm.innerText += '[STDERR] ' + str + '\n'; } });
+      
+      try {
+        await pyodideInstance.runPythonAsync(editor.value);
+      } catch (err) {
+        consoleTerm.innerText += '\n[PYTHON ERROR]: ' + err.message;
+      }
+    }
 
-            appendMessage(text, "user");
-            conversationHistory.push({ role: "user", content: text });
-            userInput.value = "";
+    function runCodeManual() {
+      if (currentLang === 'html') renderHTML();
+      else if (currentLang === 'js') runJS();
+      else if (currentLang === 'python') runPython();
+    }
 
-            userInput.disabled = true;
-            sendBtn.disabled = true;
+    function loadSample() {
+      editor.value = SAMPLES[currentLang];
+      handleInput();
+      runCodeManual();
+    }
 
-            const { contentDiv, progressBar, progressText, progressContainer } = appendAssistantMessage();
-            progressContainer.style.display = "block";
+    function clearCode() {
+      editor.value = '';
+      handleInput();
+      if (currentLang === 'html') renderHTML();
+      else consoleTerm.innerText = '';
+    }
 
-            try {
-                const stream = await engine.chat.completions.create({
-                    messages: conversationHistory,
-                    max_tokens: MAX_TOKENS,
-                    temperature: 0.6,
-                    stream: true
-                });
+    function clearConsole() {
+      consoleTerm.innerText = '';
+    }
 
-                let fullReply = "";
-                let tokenCount = 0;
+    function formatCode() {
+      let code = editor.value;
+      if (currentLang === 'html') {
+        let formatted = '';
+        let indent = '';
+        code.split(/>\s*</).forEach(node => {
+          if (node.match(/^\/\w/)) indent = indent.substring(2);
+          formatted += indent + '<' + node + '>\n';
+          if (node.match(/^<?\w[^>]*[^\/]$/) && !node.startsWith("input") && !node.startsWith("img")) indent += '  ';
+        });
+        editor.value = formatted.trim().substring(1, formatted.length - 2);
+      }
+      handleInput();
+    }
 
-                for await (const chunk of stream) {
-                    const delta = chunk.choices[0]?.delta?.content || "";
-                    fullReply += delta;
-                    tokenCount++;
+    function toggleFullPreview() {
+      popoutWindow();
+    }
 
-                    contentDiv.innerText = fullReply;
-                    const progressPercent = Math.min(Math.round((tokenCount / MAX_TOKENS) * 100), 99);
-                    progressBar.style.width = `${progressPercent}%`;
-                    progressText.innerText = `${progressPercent}% generated`;
+    function toggleHighlight() {
+      editor.classList.toggle('bg-yellow-50');
+    }
 
-                    const chatbox = document.getElementById("chatBox");
-                    chatbox.scrollTop = chatbox.scrollHeight;
-                }
+    function toggleDarkMode() {
+      const body = document.getElementById('appBody');
+      body.classList.toggle('dark-mode');
+      body.classList.toggle('bg-slate-900');
+      document.getElementById('darkBtnText').innerText = body.classList.contains('dark-mode') ? 'Light mode' : 'Dark mode';
+    }
 
-                progressBar.style.width = "100%";
-                progressText.innerText = "100% complete";
-                conversationHistory.push({ role: "assistant", content: fullReply });
-            } catch (err) {
-                contentDiv.innerText = "Error generating response.";
-            } finally {
-                userInput.disabled = false;
-                sendBtn.disabled = false;
-                userInput.focus();
-            }
-        };
+    function importFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        editor.value = evt.target.result;
+        handleInput();
+        runCodeManual();
+      };
+      reader.readAsText(file);
+    }
 
-        function appendMessage(text, sender) {
-            const chatbox = document.getElementById("chatBox");
-            const msgDiv = document.createElement("div");
-            msgDiv.className = `msg ${sender}`;
-            msgDiv.innerText = text;
-            chatbox.appendChild(msgDiv);
-            chatbox.scrollTop = chatbox.scrollHeight;
-            return msgDiv;
+    function exportFile() {
+      const extMap = { html: 'index.html', js: 'script.js', python: 'main.py' };
+      const mimeMap = { html: 'text/html', js: 'text/javascript', python: 'text/x-python' };
+      const blob = new Blob([editor.value], { type: mimeMap[currentLang] });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = extMap[currentLang];
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function popoutWindow() {
+      if (currentLang === 'html') {
+        const win = window.open('', '_blank');
+        if (win) {
+          win.document.write(editor.value || '<h1>No code entered yet</h1>');
+          win.document.close();
+        } else {
+          alert('Pop-up blocked! Please allow pop-ups for this site to view the preview window.');
         }
+      } else {
+        alert('Popout window is designed for HTML Live Preview mode.');
+      }
+    }
 
-        function appendAssistantMessage() {
-            const chatbox = document.getElementById("chatBox");
-            const msgDiv = document.createElement("div");
-            msgDiv.className = "msg ai";
-
-            const contentDiv = document.createElement("div");
-            contentDiv.innerText = "Thinking...";
-
-            const progressContainer = document.createElement("div");
-            progressContainer.className = "progress-container";
-
-            const progressBar = document.createElement("div");
-            progressBar.className = "progress-bar";
-
-            const progressText = document.createElement("div");
-            progressText.className = "progress-text";
-            progressText.innerText = "0%";
-
-            progressContainer.appendChild(progressBar);
-            msgDiv.appendChild(contentDiv);
-            msgDiv.appendChild(progressContainer);
-            msgDiv.appendChild(progressText);
-
-            chatbox.appendChild(msgDiv);
-            chatbox.scrollTop = chatbox.scrollHeight;
-
-            return { msgDiv, contentDiv, progressBar, progressText, progressContainer };
-        }
-
-        window.quickSend = function(text) {
-            userInput.value = text;
-            window.sendChatMessage();
-        };
-
-        init();
-    </script>
-
-    <script>
-        function switchTheme(theme) {
-            document.body.className = theme === 'dark' ? '' : `theme-${theme}`;
-        }
-
-        function switchTab(tabId, evt) {
-            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            evt.target.classList.add('active');
-        }
-
-        function shareWorkspace() {
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Free Local AI Chat in Browser (WebGPU)',
-                    text: 'Run Kris AI 100% locally in your browser!',
-                    url: window.location.href,
-                }).catch(() => {});
-            } else {
-                navigator.clipboard.writeText(window.location.href);
-                alert('App link copied to clipboard!');
-            }
-        }
-
-        // Tactical Radio Implementation
-        const stationDetails = {
-            88.3: { origin: "SAN FRANCISCO // GROOVE SALAD", name: "Groove Salad Ambient Chill", bgmUrl: "https://ice1.somafm.com/groovesalad-128-mp3" },
-            89.5: { origin: "CYBER CITY // RETRO SYNTHWAVE", name: "Synthwave Underground", bgmUrl: "https://ice1.somafm.com/synthwave-128-mp3" },
-            91.1: { origin: "LONDON // SECRET AGENT LOUNGE", name: "Secret Agent Lounge Beats", bgmUrl: "https://ice1.somafm.com/secretagent-128-mp3" },
-            92.4: { origin: "BERLIN // CLIQHOP ELECTRONIC", name: "Cliqhop Glitch & IDM", bgmUrl: "https://ice1.somafm.com/cliqhop-128-mp3" },
-            93.8: { origin: "PARIS // LUSH SENSORY AUDIO", name: "Lush Vocal Chillout", bgmUrl: "https://ice1.somafm.com/lush-128-mp3" },
-            95.0: { origin: "DEEP SPACE // STATION ONE", name: "Deep Space Ambient Drone", bgmUrl: "https://ice1.somafm.com/deepspaceone-128-mp3" },
-            96.2: { origin: "LAS VEGAS // DEFCON TACTICAL", name: "DEF CON Cyber Breakbeat", bgmUrl: "https://ice1.somafm.com/defcon-128-mp3" },
-            97.9: { origin: "TOKYO // SHIBUYA VAPOR", name: "Tokyo Vaporwave & City Pop", bgmUrl: "https://ice1.somafm.com/vaporwaves-128-mp3" },
-            99.4: { origin: "DETROIT // METAL DETECTOR", name: "Heavy Metal & Hard Rock", bgmUrl: "https://ice1.somafm.com/metal-128-mp3" },
-            101.1: { origin: "GOA // WORLD BEATS NODE", name: "Suburbs of Goa World Beats", bgmUrl: "https://ice1.somafm.com/suburbsofgoa-128-mp3" },
-            102.9: { origin: "IBIZA // BEAT BLENDER", name: "Beat Blender House Beats", bgmUrl: "https://ice1.somafm.com/beatblender-128-mp3" },
-            104.5: { origin: "SEATTLE // LOFI CHILLHOP", name: "Lofi Cafe Rhythms", bgmUrl: "https://ice1.somafm.com/illstreet-128-mp3" }
-        };
-
-        const bgmAudio = document.getElementById("bgmAudio");
-
-        function tuneRadio(freq) {
-            const freqNum = parseFloat(freq).toFixed(1);
-            document.getElementById("freqReadout").innerText = `${freqNum} MHz`;
-            
-            const station = stationDetails[freqNum];
-            const signalDot = document.getElementById("signalDot");
-            const terminal = document.getElementById("terminalLog");
-
-            if (station) {
-                document.getElementById("stationOrigin").innerText = `ORIGIN: ${station.origin}`;
-                document.getElementById("stationStatus").innerText = `LOCKED // ${station.name}`;
-                signalDot.style.color = "#10b981";
-                signalDot.innerText = "● LOCKED";
-
-                bgmAudio.src = station.bgmUrl;
-                if (document.getElementById("bgmToggle").checked) {
-                    bgmAudio.play().catch(() => {});
-                }
-
-                const logEntry = document.createElement("div");
-                logEntry.innerText = `[${new Date().toLocaleTimeString()}] Tuned to ${freqNum} MHz (${station.name})`;
-                terminal.appendChild(logEntry);
-                terminal.scrollTop = terminal.scrollHeight;
-            } else {
-                document.getElementById("stationOrigin").innerText = "ORIGIN: UNKNOWN NODE";
-                document.getElementById("stationStatus").innerText = "STATIC // NO SIGNAL DETECTED";
-                signalDot.style.color = "#ef4444";
-                signalDot.innerText = "● SEARCHING";
-                bgmAudio.pause();
-            }
-        }
-
-        function setFreq(val) {
-            document.getElementById("freqSlider").value = val;
-            tuneRadio(val);
-        }
-
-        function toggleBGM(enabled) {
-            if (enabled) bgmAudio.play().catch(() => {});
-            else bgmAudio.pause();
-        }
-
-        function adjustBGMVolume(val) {
-            bgmAudio.volume = val;
-        }
-
-        function toggleVoice(enabled) {
-            if (!enabled && window.speechSynthesis) window.speechSynthesis.cancel();
-        }
-
-        // Cipher Processing Engine
-        const morseCodeMap = {
-            'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
-            'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
-            'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
-            'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
-            'Y': '-.--', 'Z': '--..', '0': '-----', '1': '.----', '2': '..---',
-            '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...',
-            '8': '---..', '9': '----.', ' ': '/'
-        };
-
-        function processTranslation() {
-            const dir = document.getElementById("direction").value;
-            const scheme = document.getElementById("scheme").value;
-            const input = document.getElementById("cipherInput").value.trim();
-            const outputBox = document.getElementById("cipherOutput");
-
-            if (!input) { outputBox.innerText = "Error: Input data empty."; return; }
-
-            try {
-                let res = "";
-                if (scheme === "base64") {
-                    res = dir === "encode" ? btoa(input) : atob(input);
-                } else if (scheme === "rot13") {
-                    res = input.replace(/[a-zA-Z]/g, c => 
-                        String.fromCharCode((c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26)
-                    );
-                } else if (scheme === "hex") {
-                    if (dir === "encode") {
-                        res = Array.from(input).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
-                    } else {
-                        res = input.split(' ').map(h => String.fromCharCode(parseInt(h, 16))).join('');
-                    }
-                } else if (scheme === "binary") {
-                    if (dir === "encode") {
-                        res = Array.from(input).map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
-                    } else {
-                        res = input.split(' ').map(b => String.fromCharCode(parseInt(b, 2))).join('');
-                    }
-                } else if (scheme === "morse") {
-                    if (dir === "encode") {
-                        res = input.toUpperCase().split('').map(c => morseCodeMap[c] || c).join(' ');
-                    } else {
-                        const revMorse = Object.fromEntries(Object.entries(morseCodeMap).map(([k, v]) => [v, k]));
-                        res = input.split(' ').map(code => revMorse[code] || code).join('');
-                    }
-                }
-                outputBox.innerText = res;
-            } catch (err) {
-                outputBox.innerText = "Execution failed: Invalid cipher text or mode mismatch.";
-            }
-        }
-    </script>
+    updateLineNumbers();
+  </script>
 </body>
 </html>
