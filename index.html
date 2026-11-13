@@ -6,13 +6,45 @@
   <meta name="monetag" content="4bc06b14f52f5220e507e5a82f76ddd6">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Online Code Viewer & Runner | HTML, JS, Python</title>
+
+  <!-- SEO Meta Tags -->
+  <title>Free HTML Viewer & Online Code Sandbox | HTML, CSS, JS, Python</title>
+  <meta name="description" content="Free online HTML viewer and live code sandbox. Preview HTML, CSS, JavaScript, and Python 3 instantly in your browser—100% client-side, fast, and private with no sign-up.">
+  <meta name="keywords" content="free html viewer, online html viewer, html previewer, live html editor, javascript sandbox, python online runner, pyodide sandbox, client-side code editor">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://isaacdasigma.github.io/">
+
+  <!-- Open Graph / Link Preview Tags -->
+  <meta property="og:title" content="Free HTML Viewer & Online Code Sandbox">
+  <meta property="og:description" content="Preview HTML/CSS/JS live and run JavaScript or Python 3 directly in your browser. 100% free and client-side.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://isaacdasigma.github.io/">
+
+  <!-- Structured Data for Google Search -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "RUNNER - Free HTML Viewer & Online Code Sandbox",
+    "url": "https://isaacdasigma.github.io/",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any (Web Browser)",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "A free, 100% client-side online HTML viewer, live CSS/JS previewer, and browser-based Python 3 sandbox powered by Pyodide."
+  }
+  </script>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Pyodide for Python Execution in Browser -->
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <!-- Pyodide for Python Execution in Browser (deferred for faster initial page load) -->
+  <script defer src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     /* Dark Far Left Sidebar */
@@ -40,6 +72,23 @@
       border-color: #64748b;
     }
     .dark-mode .sidebar-btn:hover { background-color: #475569; }
+    .dark-mode #seoSection {
+      background-color: #0f172a;
+      color: #e2e8f0;
+      border-color: #334155;
+    }
+    .dark-mode #seoSection h2,
+    .dark-mode #seoSection h3 {
+      color: #f8fafc;
+    }
+    .dark-mode #seoSection p,
+    .dark-mode #seoSection li {
+      color: #cbd5e1;
+    }
+    .dark-mode .seo-card {
+      background-color: #1e293b;
+      border-color: #334155;
+    }
     .line-numbers {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 13px;
@@ -62,146 +111,197 @@
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden transition-colors duration-200" id="appBody">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col transition-colors duration-200" id="appBody">
 
-  <!-- TOP AD SECTION (Header Leaderboard 728x90 / Responsive) -->
-  <header class="bg-white border-b border-slate-300 px-4 py-2 flex flex-col md:flex-row items-center justify-between gap-2 z-10 shrink-0">
-    <div class="flex items-center gap-3">
-      <div class="bg-blue-600 text-white font-black px-2.5 py-1 rounded text-sm tracking-wider">RUNNER</div>
-      <h1 class="text-base font-bold text-slate-800">Online Code Viewer & Sandbox</h1>
-    </div>
+  <!-- FULL-SCREEN WORKSPACE WRAPPER -->
+  <div class="h-screen flex flex-col overflow-hidden shrink-0">
 
-    <!-- AdSense Header Slot -->
-    <div class="w-full md:w-[728px] h-[60px] ad-placeholder flex items-center justify-center text-xs text-slate-400 font-medium rounded relative overflow-hidden">
-      <!-- GOOGLE ADSENSE CODE HERE -->
-      <span><i class="fa-solid fa-rectangle-ad mr-1.5 text-slate-400"></i> Advertisement Space (728x90 Leaderboard)</span>
-    </div>
-  </header>
-
-  <!-- MAIN APP CONTAINER -->
-  <div class="flex flex-1 overflow-hidden">
-
-    <!-- FAR-LEFT DARK SIDEBAR -->
-    <aside class="w-48 bg-[#2d3035] p-2.5 flex flex-col gap-2 shrink-0 overflow-y-auto z-20">
-      
-      <!-- Language Selector -->
-      <div class="mb-1">
-        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Language</label>
-        <select id="langSelect" onchange="changeLanguage(this.value)" class="w-full bg-slate-800 text-white text-xs font-semibold rounded p-1.5 border border-slate-600 focus:outline-none cursor-pointer">
-          <option value="html">HTML / CSS / JS</option>
-          <option value="js">JavaScript (Node/Browser)</option>
-          <option value="python">Python 3 (Pyodide)</option>
-        </select>
+    <!-- TOP AD SECTION (Header Leaderboard 728x90 / Responsive) -->
+    <header class="bg-white border-b border-slate-300 px-4 py-2 flex flex-col md:flex-row items-center justify-between gap-2 z-10 shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="bg-blue-600 text-white font-black px-2.5 py-1 rounded text-sm tracking-wider">RUNNER</div>
+        <h1 class="text-base font-bold text-slate-800">Free HTML Viewer &amp; Online Code Sandbox</h1>
       </div>
 
-      <hr class="border-slate-700 my-0.5">
-
-      <!-- Action Buttons -->
-      <button class="sidebar-btn" onclick="toggleFullPreview()">
-        <i class="fa-solid fa-eye text-slate-600"></i> Preview (Full page)
-      </button>
-      
-      <button class="sidebar-btn" onclick="toggleHighlight()">
-        <i class="fa-solid fa-highlighter text-slate-600"></i> Highlight Mode
-      </button>
-
-      <button class="sidebar-btn" onclick="formatCode()">
-        <i class="fa-solid fa-bars-staggered text-slate-600"></i> Format Code
-      </button>
-
-      <button class="sidebar-btn" onclick="runCodeManual()">
-        <i class="fa-solid fa-play text-green-600"></i> Run / Execute
-      </button>
-
-      <button class="sidebar-btn" onclick="loadSample()">
-        <i class="fa-solid fa-file-code text-slate-600"></i> Load Sample
-      </button>
-
-      <button class="sidebar-btn" onclick="clearCode()">
-        <i class="fa-solid fa-trash-can text-slate-600"></i> Clear
-      </button>
-
-      <button class="sidebar-btn" onclick="document.getElementById('fileInput').click()">
-        <i class="fa-solid fa-upload text-slate-600"></i> Import from file
-      </button>
-      <input type="file" id="fileInput" class="hidden" accept=".html,.js,.py,.txt" onchange="importFile(event)">
-
-      <button class="sidebar-btn" onclick="exportFile()">
-        <i class="fa-solid fa-download text-slate-600"></i> Export to file
-      </button>
-
-      <button class="sidebar-btn" onclick="toggleDarkMode()">
-        <i class="fa-solid fa-moon text-slate-600"></i> <span id="darkBtnText">Dark mode</span>
-      </button>
-
-      <div class="mt-auto pt-2 border-t border-slate-700 text-[10px] text-slate-400 text-center">
-        Client-side & Safe
+      <!-- AdSense Header Slot -->
+      <div class="w-full md:w-[728px] h-[60px] ad-placeholder flex items-center justify-center text-xs text-slate-400 font-medium rounded relative overflow-hidden">
+        <!-- GOOGLE ADSENSE CODE HERE -->
+        <span><i class="fa-solid fa-rectangle-ad mr-1.5 text-slate-400"></i> Advertisement Space (728x90 Leaderboard)</span>
       </div>
-    </aside>
+    </header>
 
-    <!-- SPLIT WORKSPACE: EDITOR & PREVIEW -->
-    <main class="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-200 gap-px">
+    <!-- MAIN APP CONTAINER -->
+    <div class="flex flex-1 overflow-hidden">
 
-      <!-- LEFT: CODE EDITOR PANE -->
-      <section id="editorPane" class="flex-1 flex flex-col bg-white overflow-hidden relative">
-        <!-- Editor Bar -->
-        <div class="bg-slate-100 border-b border-slate-300 px-3 py-1.5 flex items-center justify-between text-xs text-slate-600 font-semibold">
-          <span id="editorLabel"><i class="fa-brands fa-html5 text-orange-600 mr-1.5"></i> HTML Editor</span>
-          <div class="flex items-center gap-3 text-[11px] text-slate-500">
-            <span id="lineCount">Lines: 1</span>
-            <span id="charCount">Chars: 0</span>
+      <!-- FAR-LEFT DARK SIDEBAR -->
+      <aside class="w-48 bg-[#2d3035] p-2.5 flex flex-col gap-2 shrink-0 overflow-y-auto z-20">
+        
+        <!-- Language Selector -->
+        <div class="mb-1">
+          <label for="langSelect" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Language</label>
+          <select id="langSelect" onchange="changeLanguage(this.value)" class="w-full bg-slate-800 text-white text-xs font-semibold rounded p-1.5 border border-slate-600 focus:outline-none cursor-pointer">
+            <option value="html">HTML / CSS / JS</option>
+            <option value="js">JavaScript (Node/Browser)</option>
+            <option value="python">Python 3 (Pyodide)</option>
+          </select>
+        </div>
+
+        <hr class="border-slate-700 my-0.5">
+
+        <!-- Action Buttons -->
+        <button class="sidebar-btn" onclick="toggleFullPreview()">
+          <i class="fa-solid fa-eye text-slate-600"></i> Preview (Full page)
+        </button>
+        
+        <button class="sidebar-btn" onclick="toggleHighlight()">
+          <i class="fa-solid fa-highlighter text-slate-600"></i> Highlight Mode
+        </button>
+
+        <button class="sidebar-btn" onclick="formatCode()">
+          <i class="fa-solid fa-bars-staggered text-slate-600"></i> Format Code
+        </button>
+
+        <button class="sidebar-btn" onclick="runCodeManual()">
+          <i class="fa-solid fa-play text-green-600"></i> Run / Execute
+        </button>
+
+        <button class="sidebar-btn" onclick="loadSample()">
+          <i class="fa-solid fa-file-code text-slate-600"></i> Load Sample
+        </button>
+
+        <button class="sidebar-btn" onclick="clearCode()">
+          <i class="fa-solid fa-trash-can text-slate-600"></i> Clear
+        </button>
+
+        <button class="sidebar-btn" onclick="document.getElementById('fileInput').click()">
+          <i class="fa-solid fa-upload text-slate-600"></i> Import from file
+        </button>
+        <input type="file" id="fileInput" class="hidden" accept=".html,.js,.py,.txt" onchange="importFile(event)">
+
+        <button class="sidebar-btn" onclick="exportFile()">
+          <i class="fa-solid fa-download text-slate-600"></i> Export to file
+        </button>
+
+        <button class="sidebar-btn" onclick="toggleDarkMode()">
+          <i class="fa-solid fa-moon text-slate-600"></i> <span id="darkBtnText">Dark mode</span>
+        </button>
+
+        <div class="mt-auto pt-2 border-t border-slate-700 text-[10px] text-slate-400 text-center">
+          Client-side &amp; Safe
+        </div>
+      </aside>
+
+      <!-- SPLIT WORKSPACE: EDITOR & PREVIEW -->
+      <main class="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-200 gap-px">
+
+        <!-- LEFT: CODE EDITOR PANE -->
+        <section id="editorPane" class="flex-1 flex flex-col bg-white overflow-hidden relative">
+          <!-- Editor Bar -->
+          <div class="bg-slate-100 border-b border-slate-300 px-3 py-1.5 flex items-center justify-between text-xs text-slate-600 font-semibold">
+            <span id="editorLabel"><i class="fa-brands fa-html5 text-orange-600 mr-1.5"></i> HTML Editor</span>
+            <div class="flex items-center gap-3 text-[11px] text-slate-500">
+              <span id="lineCount">Lines: 1</span>
+              <span id="charCount">Chars: 0</span>
+            </div>
           </div>
-        </div>
 
-        <!-- Textarea with Line Numbers -->
-        <div class="flex-1 flex overflow-hidden relative bg-white">
-          <div id="lineNumbers" class="line-numbers w-10 py-3 pr-2 bg-slate-50 border-r border-slate-200 select-none overflow-hidden">1</div>
-          <textarea id="codeEditor" spellcheck="false" class="flex-1 p-3 border-none bg-transparent text-slate-900 font-mono focus:outline-none overflow-auto" placeholder="Type or paste your code here..." oninput="handleInput()" onscroll="syncScroll()"></textarea>
-        </div>
-      </section>
-
-      <!-- RIGHT: OUTPUT / PREVIEW PANE -->
-      <section id="previewPane" class="flex-1 flex flex-col bg-white overflow-hidden relative border-l border-slate-300">
-        <!-- Preview Bar -->
-        <div class="bg-slate-100 border-b border-slate-300 px-3 py-1.5 flex items-center justify-between text-xs text-slate-600 font-semibold">
-          <span id="outputLabel"><i class="fa-solid fa-desktop mr-1.5 text-blue-600"></i> Live Preview</span>
-          <div class="flex items-center gap-2">
-            <span id="pyStatus" class="hidden text-[11px] text-amber-600 font-medium"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Pyodide Loading...</span>
-            <button onclick="clearConsole()" id="clearConsoleBtn" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded text-[10px]">Clear Output</button>
-            
-            <!-- PROMINENT POPOUT BUTTON -->
-            <button onclick="popoutWindow()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2.5 py-1 rounded text-xs transition-all shadow-sm flex items-center gap-1">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Popout
-            </button>
+          <!-- Textarea with Line Numbers -->
+          <div class="flex-1 flex overflow-hidden relative bg-white">
+            <div id="lineNumbers" class="line-numbers w-10 py-3 pr-2 bg-slate-50 border-r border-slate-200 select-none overflow-hidden">1</div>
+            <textarea id="codeEditor" aria-label="Code Editor" spellcheck="false" class="flex-1 p-3 border-none bg-transparent text-slate-900 font-mono focus:outline-none overflow-auto" placeholder="Type or paste your HTML, CSS, JavaScript, or Python code here..." oninput="handleInput()" onscroll="syncScroll()"></textarea>
           </div>
-        </div>
+        </section>
 
-        <!-- USER NOTICE BANNER -->
-        <div id="popoutNotice" class="bg-amber-50 border-b border-amber-200 px-3 py-2 text-xs text-amber-900 flex items-center justify-between font-medium">
-          <div class="flex items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
-            <span><strong>Notice:</strong> To render and run your web page, click <button onclick="popoutWindow()" class="underline font-bold hover:text-blue-700">Popout</button> in the top right.</span>
+        <!-- RIGHT: OUTPUT / PREVIEW PANE -->
+        <section id="previewPane" class="flex-1 flex flex-col bg-white overflow-hidden relative border-l border-slate-300">
+          <!-- Preview Bar -->
+          <div class="bg-slate-100 border-b border-slate-300 px-3 py-1.5 flex items-center justify-between text-xs text-slate-600 font-semibold">
+            <span id="outputLabel"><i class="fa-solid fa-desktop mr-1.5 text-blue-600"></i> Live Preview</span>
+            <div class="flex items-center gap-2">
+              <span id="pyStatus" class="hidden text-[11px] text-amber-600 font-medium"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Pyodide Loading...</span>
+              <button onclick="clearConsole()" id="clearConsoleBtn" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-0.5 rounded text-[10px]">Clear Output</button>
+              
+              <!-- PROMINENT POPOUT BUTTON -->
+              <button onclick="popoutWindow()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-2.5 py-1 rounded text-xs transition-all shadow-sm flex items-center gap-1">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Popout
+              </button>
+            </div>
           </div>
-          <button onclick="document.getElementById('popoutNotice').style.display='none'" class="text-amber-500 hover:text-amber-800 text-xs font-bold px-1">&times;</button>
-        </div>
 
-        <!-- Display Frame (HTML iframe OR JS/Python Console) -->
-        <div class="flex-1 relative bg-white overflow-hidden flex flex-col">
-          <iframe id="previewIframe" class="w-full h-full border-none bg-white" sandbox="allow-scripts allow-modals allow-forms"></iframe>
-          <div id="consoleTerminal" class="hidden w-full h-full bg-slate-900 text-green-400 p-4 font-mono text-xs overflow-auto whitespace-pre-wrap leading-relaxed"></div>
-        </div>
-      </section>
+          <!-- USER NOTICE BANNER -->
+          <div id="popoutNotice" class="bg-amber-50 border-b border-amber-200 px-3 py-2 text-xs text-amber-900 flex items-center justify-between font-medium">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
+              <span><strong>Notice:</strong> To render and run your web page, click <button onclick="popoutWindow()" class="underline font-bold hover:text-blue-700">Popout</button> in the top right.</span>
+            </div>
+            <button onclick="document.getElementById('popoutNotice').style.display='none'" class="text-amber-500 hover:text-amber-800 text-xs font-bold px-1" aria-label="Close notice">&times;</button>
+          </div>
 
-    </main>
+          <!-- Display Frame (HTML iframe OR JS/Python Console) -->
+          <div class="flex-1 relative bg-white overflow-hidden flex flex-col">
+            <iframe id="previewIframe" title="Live HTML Preview" class="w-full h-full border-none bg-white" sandbox="allow-scripts allow-modals allow-forms"></iframe>
+            <div id="consoleTerminal" class="hidden w-full h-full bg-slate-900 text-green-400 p-4 font-mono text-xs overflow-auto whitespace-pre-wrap leading-relaxed"></div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- BOTTOM AD SECTION (Footer Banner 728x90 / Responsive) -->
+    <footer class="bg-white border-t border-slate-300 px-4 py-1.5 flex items-center justify-center shrink-0 z-10">
+      <div class="w-full md:w-[728px] h-[50px] ad-placeholder flex items-center justify-center text-xs text-slate-400 font-medium rounded relative overflow-hidden">
+        <!-- GOOGLE ADSENSE CODE HERE -->
+        <span><i class="fa-solid fa-rectangle-ad mr-1.5 text-slate-400"></i> Bottom Ad Space (Leaderboard Banner)</span>
+      </div>
+    </footer>
+
   </div>
 
-  <!-- BOTTOM AD SECTION (Footer Banner 728x90 / Responsive) -->
-  <footer class="bg-white border-t border-slate-300 px-4 py-1.5 flex items-center justify-center shrink-0 z-10">
-    <div class="w-full md:w-[728px] h-[50px] ad-placeholder flex items-center justify-center text-xs text-slate-400 font-medium rounded relative overflow-hidden">
-      <!-- GOOGLE ADSENSE CODE HERE -->
-      <span><i class="fa-solid fa-rectangle-ad mr-1.5 text-slate-400"></i> Bottom Ad Space (Leaderboard Banner)</span>
+  <!-- BELOW-THE-FOLD SEO & DOCUMENTATION SECTION -->
+  <section id="seoSection" class="bg-white border-t border-slate-300 py-12 px-6">
+    <div class="max-w-4xl mx-auto space-y-8">
+      
+      <div>
+        <h2 class="text-2xl font-bold text-slate-900 mb-3">Free Online HTML Viewer, Live Previewer &amp; Code Sandbox</h2>
+        <p class="text-sm text-slate-600 leading-relaxed">
+          <strong>RUNNER</strong> is a fast, lightweight, and 100% free online HTML viewer and multi-language code sandbox. Whether you are testing HTML and CSS layouts, debugging JavaScript functions, or running Python 3 scripts in your browser, you can write, format, and preview code instantly with zero setup or account required.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="seo-card bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <h3 class="font-bold text-sm text-slate-900 mb-1.5"><i class="fa-brands fa-html5 text-orange-600 mr-1.5"></i> Live HTML / CSS / JS Viewer</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Paste or write HTML5, CSS3, and vanilla JavaScript to see real-time rendering side by side, or open your page in a full-screen popout tab.
+          </p>
+        </div>
+
+        <div class="seo-card bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <h3 class="font-bold text-sm text-slate-900 mb-1.5"><i class="fa-brands fa-python text-blue-500 mr-1.5"></i> Browser-Based Python 3</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Switch to Python 3 to execute scripts directly inside your browser via WebAssembly (Pyodide)—ideal for students, Chromebooks, and quick testing.
+          </p>
+        </div>
+
+        <div class="seo-card bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <h3 class="font-bold text-sm text-slate-900 mb-1.5"><i class="fa-solid fa-shield-halved text-green-600 mr-1.5"></i> 100% Client-Side &amp; Private</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Your code never leaves your device. Everything runs locally in your browser without server uploads, tracking, or login walls.
+          </p>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <h3 class="text-lg font-bold text-slate-900">Frequently Asked Questions</h3>
+        <div class="space-y-2 text-xs text-slate-600">
+          <p><strong>Is this HTML viewer free to use?</strong> Yes. RUNNER is completely free with no sign-up, usage limits, or paywalls.</p>
+          <p><strong>Is my code uploaded to a server?</strong> No. All HTML rendering, JavaScript execution, and Python WebAssembly processing happen locally in your browser memory.</p>
+          <p><strong>Can I save or open local files?</strong> Yes—use the <em>Import from file</em> and <em>Export to file</em> buttons in the sidebar to load or download <code>.html</code>, <code>.js</code>, <code>.py</code>, and <code>.txt</code> files.</p>
+        </div>
+      </div>
+
     </div>
-  </footer>
+  </section>
 
   <!-- JAVASCRIPT LOGIC -->
   <script>
